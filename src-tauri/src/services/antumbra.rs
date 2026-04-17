@@ -16,6 +16,19 @@ use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::AsyncReadExt;
 use tokio::process::Command as TokioCommand;
 
+#[derive(Debug, Clone, Copy)]
+pub struct StreamingOptions {
+    pub inactivity_timeout: Option<Duration>,
+}
+
+impl Default for StreamingOptions {
+    fn default() -> Self {
+        Self {
+            inactivity_timeout: None,
+        }
+    }
+}
+
 pub struct AntumbraExecutor {
     binary_path: PathBuf,
     working_dir: PathBuf,
@@ -194,6 +207,17 @@ impl AntumbraExecutor {
         operation_id: String,
         args: Vec<String>,
     ) -> Result<String> {
+        self.execute_streaming_with_options(app, operation_id, args, StreamingOptions::default())
+            .await
+    }
+
+    pub async fn execute_streaming_with_options(
+        &self,
+        app: AppHandle,
+        operation_id: String,
+        args: Vec<String>,
+        options: StreamingOptions,
+    ) -> Result<String> {
         store_last_command(&self.binary_path, &self.working_dir, &args);
         log::info!(
             "Executing antumbra (streaming) with args: {:?} (cwd: {:?})",
@@ -274,31 +298,35 @@ impl AntumbraExecutor {
             .await;
         });
 
-        // Wait for process to complete or timeout due to inactivity
-        let timeout_secs = 30u64;
-        let mut interval = tokio::time::interval(Duration::from_secs(1));
-        let status = loop {
-            tokio::select! {
-                status = child.wait() => break status.context("Failed to wait for process")?,
-                _ = interval.tick() => {
-                    let last = last_output.load(Ordering::Relaxed);
-                    if now_millis().saturating_sub(last) > timeout_secs * 1000 {
-                        let _ = child.kill().await;
-                        clear_current_pid();
-                        let error_msg = format!(
-                            "Antumbra process timed out after {}s without output",
-                            timeout_secs
-                        );
-                        let complete_event = OperationCompleteEvent {
-                            operation_id: operation_id.clone(),
-                            success: false,
-                            error: Some(error_msg.clone()),
-                        };
-                        let _ = app.emit("operation:complete", complete_event);
-                        anyhow::bail!(error_msg);
+        // Wait for process completion. Some valid operations stay quiet for long periods,
+        // so inactivity timeouts are opt-in instead of being enforced globally.
+        let status = if let Some(timeout) = options.inactivity_timeout {
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            loop {
+                tokio::select! {
+                    status = child.wait() => break status.context("Failed to wait for process")?,
+                    _ = interval.tick() => {
+                        let last = last_output.load(Ordering::Relaxed);
+                        if now_millis().saturating_sub(last) > timeout.as_millis() as u64 {
+                            let _ = child.kill().await;
+                            clear_current_pid();
+                            let error_msg = format!(
+                                "Antumbra process timed out after {:.0}s without output",
+                                timeout.as_secs_f64()
+                            );
+                            let complete_event = OperationCompleteEvent {
+                                operation_id: operation_id.clone(),
+                                success: false,
+                                error: Some(error_msg.clone()),
+                            };
+                            let _ = app.emit("operation:complete", complete_event);
+                            anyhow::bail!(error_msg);
+                        }
                     }
                 }
             }
+        } else {
+            child.wait().await.context("Failed to wait for process")?
         };
 
         // Wait for streaming tasks to complete

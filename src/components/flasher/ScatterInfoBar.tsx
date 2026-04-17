@@ -33,15 +33,15 @@ export function ScatterInfoBar({ scatterFile, onSelectAll, onClearAll }: Scatter
       <div className="flex items-center gap-2">
         <button
           onClick={onSelectAll}
-          className="px-3 py-1.5 text-sm bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] rounded transition-colors border border-[var(--border)]"
+          className="px-3 py-1.5 text-sm bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded transition-colors"
         >
           Select All
         </button>
         <button
           onClick={onClearAll}
-          className="px-3 py-1.5 text-sm bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] rounded transition-colors border border-[var(--border)]"
+          className="px-3 py-1.5 text-sm bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded transition-colors"
         >
-          Clear All
+          Deselect All
         </button>
       </div>
     </div>

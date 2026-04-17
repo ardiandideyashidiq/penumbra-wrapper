@@ -4,13 +4,19 @@
 */
 
 import { Outlet, NavLink } from 'react-router-dom';
-import { Terminal, Grid, FileStack, Wrench, Sun, Moon, Cpu } from 'lucide-react';
+import { Terminal, Grid, FileStack, Wrench, Sun, Moon, Cpu, Zap } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
+import { useFlasherStore } from '../store/flasherStore';
 
 export function Layout() {
   const toggleLogPanel = useUIStore((state) => state.toggleLogPanel);
   const theme = useUIStore((state) => state.theme);
   const toggleTheme = useUIStore((state) => state.toggleTheme);
+  const { isFlashing, currentFlashIndex, totalFlashCount, flashModalMinimized, openFlashModal } = useFlasherStore();
+
+  const handleFlashIndicatorClick = () => {
+    openFlashModal();
+  };
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex">
@@ -86,6 +92,18 @@ export function Layout() {
 
         {/* Log Panel Toggle (Bottom) */}
         <div className="p-4 border-t border-[var(--border)] space-y-2">
+          {isFlashing && flashModalMinimized && (
+            <button
+              onClick={handleFlashIndicatorClick}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-lg transition-colors text-[var(--accent-foreground)]"
+              title="Show flash progress"
+            >
+              <Zap className="w-5 h-5 animate-pulse" />
+              <span className="font-medium">
+                Flashing {currentFlashIndex}/{totalFlashCount}
+              </span>
+            </button>
+          )}
           <button
             onClick={toggleTheme}
             className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]"

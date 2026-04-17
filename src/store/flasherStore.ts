@@ -7,6 +7,11 @@ interface FlasherState {
   isConnecting: boolean;
   selectedPartitions: Set<string>;
   partitionImages: Map<string, string>;
+  isFlashing: boolean;
+  currentFlashIndex: number;
+  totalFlashCount: number;
+  flashModalMinimized: boolean;
+  showFlashModal: boolean;
   
   // Actions
   setScatterFile: (file: ScatterFile | null) => void;
@@ -17,6 +22,11 @@ interface FlasherState {
   setPartitionImage: (partition: string, imagePath: string) => void;
   togglePartitionSelection: (partition: string) => void;
   clearFlasherState: () => void;
+  setFlashing: (flashing: boolean, index?: number, total?: number) => void;
+  updateFlashProgress: (index: number) => void;
+  setFlashModalMinimized: (minimized: boolean) => void;
+  setFlashModalOpen: (open: boolean) => void;
+  openFlashModal: () => void;
 }
 
 export const useFlasherStore = create<FlasherState>((set, get) => ({
@@ -25,6 +35,11 @@ export const useFlasherStore = create<FlasherState>((set, get) => ({
   isConnecting: false,
   selectedPartitions: new Set(),
   partitionImages: new Map(),
+  isFlashing: false,
+  currentFlashIndex: 0,
+  totalFlashCount: 0,
+  flashModalMinimized: false,
+  showFlashModal: false,
   
   setScatterFile: (file) => set({ scatterFile: file }),
   
@@ -56,5 +71,24 @@ export const useFlasherStore = create<FlasherState>((set, get) => ({
     scatterFile: null,
     selectedPartitions: new Set(),
     partitionImages: new Map(),
+    isFlashing: false,
+    currentFlashIndex: 0,
+    totalFlashCount: 0,
+    flashModalMinimized: false,
+    showFlashModal: false,
   }),
+  
+  setFlashing: (flashing, index, total) => set({
+    isFlashing: flashing,
+    currentFlashIndex: index ?? 0,
+    totalFlashCount: total ?? 0,
+  }),
+  
+  updateFlashProgress: (index) => set({ currentFlashIndex: index }),
+  
+  setFlashModalMinimized: (minimized) => set({ flashModalMinimized: minimized }),
+  
+  setFlashModalOpen: (open) => set({ showFlashModal: open, flashModalMinimized: false }),
+  
+  openFlashModal: () => set({ showFlashModal: true, flashModalMinimized: false }),
 }));
