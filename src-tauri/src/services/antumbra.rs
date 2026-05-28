@@ -3,6 +3,7 @@
     SPDX-FileCopyrightText: 2025 Shomy
 */
 
+use crate::commands::helpers::is_dir_writable;
 use crate::models::{OperationCompleteEvent, OperationOutputEvent};
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -177,27 +178,6 @@ impl AntumbraExecutor {
         }
 
         Ok(Self { binary_path, working_dir })
-    }
-
-    /// Execute antumbra without streaming (legacy/fallback method)
-    #[allow(dead_code)]
-    pub async fn execute(&self, args: Vec<String>) -> Result<String> {
-        store_last_command(&self.binary_path, &self.working_dir, &args);
-        log::info!("Executing antumbra with args: {:?} (cwd: {:?})", args, self.working_dir);
-
-        let output = create_hidden_command(&self.binary_path, &args)
-            .current_dir(&self.working_dir)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .context("Failed to execute antumbra")?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Antumbra failed: {}", stderr);
-        }
-
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 
     /// Execute antumbra with real-time streaming output
@@ -378,11 +358,6 @@ impl AntumbraExecutor {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     }
 
-    #[allow(dead_code)]
-    pub fn get_binary_path(&self) -> &PathBuf {
-        &self.binary_path
-    }
-
 }
 
 fn set_current_pid(pid: Option<u32>) {
@@ -517,17 +492,6 @@ fn get_antumbra_working_dir(app: &AppHandle, binary_path: &PathBuf) -> Result<Pa
     let config_dir = app.path().app_config_dir().context("Failed to get config directory")?;
     std::fs::create_dir_all(&config_dir).context("Failed to create antumbra working directory")?;
     Ok(config_dir)
-}
-
-fn is_dir_writable(path: &std::path::Path) -> bool {
-    let test_name = format!(".antumbra-write-test-{}", uuid::Uuid::new_v4());
-    let test_path = path.join(test_name);
-    if let Ok(file) = std::fs::OpenOptions::new().write(true).create_new(true).open(&test_path) {
-        drop(file);
-        let _ = std::fs::remove_file(&test_path);
-        return true;
-    }
-    false
 }
 
 fn store_last_command(binary_path: &PathBuf, working_dir: &PathBuf, args: &[String]) {

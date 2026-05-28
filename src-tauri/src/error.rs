@@ -80,7 +80,6 @@ pub enum AppError {
     },
 }
 
-#[allow(dead_code)]
 impl AppError {
     /// Create a new IO error
     pub fn io(message: impl Into<String>) -> Self {

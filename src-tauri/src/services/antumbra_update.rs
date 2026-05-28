@@ -77,7 +77,7 @@ pub async fn check_for_updates(app: &AppHandle) -> Result<AntumbraUpdateInfo> {
     
     // If no version in config but binary exists, run --version once and save it
     let installed_version = if installed_version.is_none() && installed_path.is_some() {
-        match get_installed_version(app).await {
+        match get_installed_version(app) {
             Ok(version) => {
                 // Try to save this version to config for future checks
                 if let Ok(mut settings) = load_settings() {
@@ -124,7 +124,7 @@ pub async fn check_for_updates(app: &AppHandle) -> Result<AntumbraUpdateInfo> {
                 (None, _, _) => true,
                 (Some(_), None, Some(latest)) => {
                     // Config version is None, but we have binary - try to detect version
-                    if let Ok(detected_version) = get_installed_version(app).await {
+                        if let Ok(detected_version) = get_installed_version(app) {
                         normalize_version(&detected_version).as_deref() != Some(latest)
                     } else {
                         log::warn!("Binary exists but version detection failed, assuming update needed");
@@ -622,43 +622,32 @@ async fn replace_binary_with_retry(temp_path: &Path, target_path: &Path) -> Resu
     
     for attempt in 0..5 {
         match fs::rename(temp_path, target_path) {
-            Ok(_) => {
-                return Ok(());
-            }
+            Ok(_) => return Ok(()),
             Err(e) => {
-                // Check if it's a file sharing violation (ERROR_SHARING_VIOLATION = 32)
                 if let Some(raw_error) = e.raw_os_error() {
                     if raw_error == 32 && attempt < 4 {
                         log::warn!("File locked (attempt {}/5), retrying in 2 seconds...", attempt + 1);
-                        
-                        // Try to kill any running antumbra process
                         if let Err(kill_err) = crate::services::antumbra::kill_current_process() {
                             log::warn!("Failed to kill antumbra process: {}", kill_err);
                         }
-                        
-                        // Properly await the sleep
                         sleep(Duration::from_secs(2)).await;
                         continue;
                     } else if raw_error == 5 {
-                        // ERROR_ACCESS_DENIED
                         return Err(anyhow::anyhow!("Access denied when replacing antumbra binary. Please run as Administrator or check antivirus software."));
                     }
                 }
                 
-                // Log the error with Windows-specific context
                 log::error!("Failed to replace binary (attempt {}/5): {}", attempt + 1, e);
                 
                 if attempt < 4 {
-                    // Properly await the sleep
                     sleep(Duration::from_millis(1000)).await;
                     continue;
-                } else {
-                    return Err(anyhow::anyhow!("Failed to replace antumbra binary after 5 attempts: {}. Is antumbra.exe currently running?", e));
                 }
+                return Err(anyhow::anyhow!("Failed to replace antumbra binary after 5 attempts: {}. Is antumbra.exe currently running?", e));
             }
         }
     }
-    unreachable!()
+    Err(anyhow::anyhow!("Unexpected error in replace_binary_with_retry"))
 }
 
 async fn fetch_latest_release() -> Result<ReleaseInfo> {
@@ -826,7 +815,7 @@ fn is_valid_sha256(hash: &str) -> bool {
     hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit())
 }
 
-pub async fn get_installed_version(app: &AppHandle) -> Result<String> {
+pub fn get_installed_version(app: &AppHandle) -> Result<String> {
     if let Some(path) = get_existing_antumbra_path(app)? {
         log::info!("Getting version from antumbra binary at: {:?}", path);
         

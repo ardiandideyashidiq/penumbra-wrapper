@@ -30,17 +30,4 @@ pub struct ScatterFile {
     pub file_path: String,
 }
 
-impl ScatterFile {
-    /// Get only partitions with is_download = true
-    #[allow(dead_code)]
-    pub fn get_download_partitions(&self) -> Vec<&ScatterPartition> {
-        self.partitions.iter().filter(|p| p.is_download).collect()
-    }
 
-    /// Parse hex string to u64
-    #[allow(dead_code)]
-    pub fn parse_hex(hex_str: &str) -> Result<u64, std::num::ParseIntError> {
-        let cleaned = hex_str.trim_start_matches("0x").trim_start_matches("0X");
-        u64::from_str_radix(cleaned, 16)
-    }
-}

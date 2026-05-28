@@ -3,9 +3,8 @@
     SPDX-FileCopyrightText: 2025 Shomy
 */
 
+use crate::commands::{emit_operation_complete, emit_operation_output};
 use crate::error::AppError;
-use crate::models::{OperationCompleteEvent, OperationOutputEvent};
-use chrono::Utc;
 use serde::Serialize;
 use std::io::Write;
 use std::time::{Duration, Instant};
@@ -202,30 +201,6 @@ fn emit_status(app: &AppHandle, status: FastbootStatus, message: &str) {
         message: message.to_string(),
     };
     let _ = app.emit("fastboot:status", payload);
-}
-
-fn emit_operation_output(app: &AppHandle, operation_id: &str, line: &str, is_stderr: bool) {
-    let event = OperationOutputEvent {
-        operation_id: operation_id.to_string(),
-        line: line.to_string(),
-        timestamp: Utc::now().to_rfc3339(),
-        is_stderr,
-    };
-    let _ = app.emit("operation:output", event);
-}
-
-fn emit_operation_complete(
-    app: &AppHandle,
-    operation_id: &str,
-    success: bool,
-    error: Option<String>,
-) {
-    let event = OperationCompleteEvent {
-        operation_id: operation_id.to_string(),
-        success,
-        error,
-    };
-    let _ = app.emit("operation:complete", event);
 }
 
 #[derive(Debug)]

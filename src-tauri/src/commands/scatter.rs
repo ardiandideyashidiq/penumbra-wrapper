@@ -69,15 +69,14 @@ pub async fn detect_image_files(
 
     // Match partitions to image files
     let mut image_map: HashMap<String, String> = HashMap::new();
-    let downloadable_partitions: Vec<&ScatterPartition> =
-        partitions.iter().filter(|p| p.is_download).collect();
+    let downloadable: Vec<&ScatterPartition> = partitions.iter().filter(|p| p.is_download).collect();
 
     log::info!(
         "[ImageDetect] Processing {} downloadable partitions",
-        downloadable_partitions.len()
+        downloadable.len()
     );
 
-    for partition in downloadable_partitions {
+    for partition in downloadable {
         let partition_name_lower = partition.partition_name.to_lowercase();
 
         // Get scatter file_name (if specified and not "NONE")

@@ -3,9 +3,8 @@
     SPDX-FileCopyrightText: 2025 Shomy
 */
 
-use crate::commands::validate_da_preloader_paths;
+use crate::commands::execute_antumbra_command;
 use crate::error::AppError;
-use crate::services::antumbra::AntumbraExecutor;
 use tauri::{AppHandle, Window};
 
 #[tauri::command]
@@ -19,23 +18,12 @@ pub async fn erase_partition(
 ) -> Result<(), AppError> {
     log::info!("Erasing partition '{}' (operation_id: {})", partition, operation_id);
 
-    validate_da_preloader_paths(&da_path, preloader_path.as_deref())?;
-
-    let executor = AntumbraExecutor::new(&app)?;
-
-    // Build command arguments: erase <partition> -d <da> [-p <pl>]
-    let mut args = vec!["erase".to_string(), partition.clone(), "-d".to_string(), da_path];
-
-    if let Some(pl) = preloader_path {
-        args.push("-p".to_string());
-        args.push(pl);
-    }
-
-    // Execute with streaming output using frontend-provided operation_id
-    executor
-        .execute_streaming(app, operation_id, args)
-        .await
-        .map_err(|e| AppError::command(e.to_string()))?;
-
-    Ok(())
+    execute_antumbra_command(
+        app,
+        operation_id,
+        &da_path,
+        preloader_path.as_deref(),
+        vec!["erase".to_string(), partition],
+    )
+    .await
 }

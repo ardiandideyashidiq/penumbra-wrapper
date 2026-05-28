@@ -64,11 +64,4 @@ pub fn get_config_path() -> Result<PathBuf> {
     Ok(config_dir.join("penumbra-wrapper").join("config.json"))
 }
 
-/// Get the configuration directory (reserved for future features)
-#[allow(dead_code)]
-pub fn get_config_dir() -> Result<PathBuf> {
-    let config_dir = dirs::config_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not determine config directory"))?;
 
-    Ok(config_dir.join("penumbra-wrapper"))
-}

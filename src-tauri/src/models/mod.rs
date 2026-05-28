@@ -22,25 +22,13 @@ pub struct PartitionListResult {
     pub operation_id: String,
 }
 
-// Reserved for future progress tracking features
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FlashProgress {
     pub current: u64,
     pub total: u64,
     pub percentage: f32,
     pub partition_name: String,
-    pub operation: String, // "read" or "write"
-}
-
-// Reserved for future structured logging features
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LogEvent {
-    pub timestamp: String,
-    pub level: String,
-    pub message: String,
-    pub partition_name: Option<String>,
+    pub operation: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

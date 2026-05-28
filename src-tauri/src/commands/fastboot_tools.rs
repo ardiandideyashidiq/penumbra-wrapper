@@ -3,16 +3,15 @@
     SPDX-FileCopyrightText: 2025 Shomy
 */
 
+use crate::commands::{emit_operation_complete, emit_operation_output, result_with_emit};
 use crate::error::AppError;
-use crate::models::{OperationCompleteEvent, OperationOutputEvent};
-use chrono::Utc;
 use fastboot_protocol::nusb::{self as fastboot_nusb, NusbFastBoot, NusbFastBootOpenError};
 use fastboot_protocol::protocol::FastBootResponse;
 use nusb;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::Path;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 const SPARSE_MAGIC: u32 = 0xed26ff3a;
 const FLASH_CHUNK_SIZE: usize = 1024 * 1024;
@@ -71,35 +70,17 @@ pub async fn fastboot_getvar_all(
 ) -> Result<Vec<String>, AppError> {
     emit_operation_output(&app, &operation_id, "Fetching fastboot variables...", false);
 
-    let info = match find_device_info(&device_id) {
-        Ok(info) => info,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
-    let mut fastboot = match open_fastboot(&info) {
-        Ok(fastboot) => fastboot,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let info = result_with_emit(find_device_info(&device_id), &app, &operation_id)?;
+    let mut fastboot = result_with_emit(open_fastboot(&info), &app, &operation_id)?;
 
-    let vars = fastboot
-        .get_all_vars()
-        .await
-        .map_err(|err| AppError::command(format!("fastboot getvar all failed: {err}")));
-    let vars = match vars {
-        Ok(vars) => vars,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let vars = result_with_emit(
+        fastboot
+            .get_all_vars()
+            .await
+            .map_err(|err| AppError::command(format!("fastboot getvar all failed: {err}"))),
+        &app,
+        &operation_id,
+    )?;
 
     let mut keys: Vec<_> = vars.keys().cloned().collect();
     keys.sort();
@@ -131,35 +112,17 @@ pub async fn fastboot_getvar(
         false,
     );
 
-    let info = match find_device_info(&device_id) {
-        Ok(info) => info,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
-    let mut fastboot = match open_fastboot(&info) {
-        Ok(fastboot) => fastboot,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let info = result_with_emit(find_device_info(&device_id), &app, &operation_id)?;
+    let mut fastboot = result_with_emit(open_fastboot(&info), &app, &operation_id)?;
 
-    let value = fastboot
-        .get_var(&name)
-        .await
-        .map_err(|err| AppError::command(format!("fastboot getvar failed: {err}")));
-    let value = match value {
-        Ok(value) => value,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let value = result_with_emit(
+        fastboot
+            .get_var(&name)
+            .await
+            .map_err(|err| AppError::command(format!("fastboot getvar failed: {err}"))),
+        &app,
+        &operation_id,
+    )?;
 
     emit_operation_output(&app, &operation_id, &format!("{name}: {value}"), false);
     emit_operation_complete(&app, &operation_id, true, None);
@@ -182,45 +145,22 @@ pub async fn fastboot_flash(
         return Err(AppError::command(message));
     }
 
-    let info = match find_device_info(&device_id) {
-        Ok(info) => info,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
-    let mut fastboot = match open_fastboot(&info) {
-        Ok(fastboot) => fastboot,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let info = result_with_emit(find_device_info(&device_id), &app, &operation_id)?;
+    let mut fastboot = result_with_emit(open_fastboot(&info), &app, &operation_id)?;
 
-    let metadata = tokio::fs::metadata(image_path_ref)
-        .await
-        .map_err(|err| AppError::command(format!("Failed to read image metadata: {err}")));
-    let metadata = match metadata {
-        Ok(metadata) => metadata,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let metadata = result_with_emit(
+        tokio::fs::metadata(image_path_ref)
+            .await
+            .map_err(|err| AppError::command(format!("Failed to read image metadata: {err}"))),
+        &app,
+        &operation_id,
+    )?;
     let file_size = metadata.len();
-    let size = u32::try_from(file_size)
-        .map_err(|_| AppError::command("Image file is too large for fastboot"));
-    let size = match size {
-        Ok(size) => size,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let size = result_with_emit(
+        u32::try_from(file_size).map_err(|_| AppError::command("Image file is too large for fastboot")),
+        &app,
+        &operation_id,
+    )?;
 
     if is_sparse_image(image_path_ref).await? {
         emit_operation_output(
@@ -238,66 +178,52 @@ pub async fn fastboot_flash(
         false,
     );
 
-    let download = fastboot
-        .download(size)
-        .await
-        .map_err(|err| AppError::command(format!("Fastboot download failed: {err}")));
-    let mut download = match download {
-        Ok(download) => download,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let mut download = result_with_emit(
+        fastboot
+            .download(size)
+            .await
+            .map_err(|err| AppError::command(format!("Fastboot download failed: {err}"))),
+        &app,
+        &operation_id,
+    )?;
 
-    let file = tokio::fs::File::open(image_path_ref)
-        .await
-        .map_err(|err| AppError::command(format!("Failed to open image file: {err}")));
-    let mut file = match file {
-        Ok(file) => file,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let mut file = result_with_emit(
+        tokio::fs::File::open(image_path_ref)
+            .await
+            .map_err(|err| AppError::command(format!("Failed to open image file: {err}"))),
+        &app,
+        &operation_id,
+    )?;
     let mut buffer = vec![0u8; FLASH_CHUNK_SIZE];
     loop {
-        let bytes = tokio::io::AsyncReadExt::read(&mut file, &mut buffer)
-            .await
-            .map_err(|err| AppError::command(format!("Failed to read image file: {err}")));
-        let bytes = match bytes {
-            Ok(bytes) => bytes,
-            Err(err) => {
-                emit_operation_output(&app, &operation_id, &err.message(), true);
-                emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-                return Err(err);
-            }
-        };
+        let bytes = result_with_emit(
+            tokio::io::AsyncReadExt::read(&mut file, &mut buffer)
+                .await
+                .map_err(|err| AppError::command(format!("Failed to read image file: {err}"))),
+            &app,
+            &operation_id,
+        )?;
         if bytes == 0 {
             break;
         }
-        let chunk_result = download
-            .extend_from_slice(&buffer[..bytes])
-            .await
-            .map_err(|err| AppError::command(format!("Fastboot download failed: {err}")));
-        if let Err(err) = chunk_result {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
+        result_with_emit(
+            download
+                .extend_from_slice(&buffer[..bytes])
+                .await
+                .map_err(|err| AppError::command(format!("Fastboot download failed: {err}"))),
+            &app,
+            &operation_id,
+        )?;
     }
 
-    let finish_result = download
-        .finish()
-        .await
-        .map_err(|err| AppError::command(format!("Fastboot download failed: {err}")));
-    if let Err(err) = finish_result {
-        emit_operation_output(&app, &operation_id, &err.message(), true);
-        emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-        return Err(err);
-    }
+    result_with_emit(
+        download
+            .finish()
+            .await
+            .map_err(|err| AppError::command(format!("Fastboot download failed: {err}"))),
+        &app,
+        &operation_id,
+    )?;
 
     emit_operation_output(
         &app,
@@ -306,15 +232,14 @@ pub async fn fastboot_flash(
         false,
     );
 
-    let flash_result = fastboot
-        .flash(&partition)
-        .await
-        .map_err(|err| AppError::command(format!("Fastboot flash failed: {err}")));
-    if let Err(err) = flash_result {
-        emit_operation_output(&app, &operation_id, &err.message(), true);
-        emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-        return Err(err);
-    }
+    result_with_emit(
+        fastboot
+            .flash(&partition)
+            .await
+            .map_err(|err| AppError::command(format!("Fastboot flash failed: {err}"))),
+        &app,
+        &operation_id,
+    )?;
 
     emit_operation_complete(&app, &operation_id, true, None);
     Ok(())
@@ -327,22 +252,8 @@ pub async fn fastboot_erase(
     partition: String,
     operation_id: String,
 ) -> Result<(), AppError> {
-    let info = match find_device_info(&device_id) {
-        Ok(info) => info,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
-    let mut fastboot = match open_fastboot(&info) {
-        Ok(fastboot) => fastboot,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let info = result_with_emit(find_device_info(&device_id), &app, &operation_id)?;
+    let mut fastboot = result_with_emit(open_fastboot(&info), &app, &operation_id)?;
 
     emit_operation_output(
         &app,
@@ -351,15 +262,14 @@ pub async fn fastboot_erase(
         false,
     );
 
-    let result = fastboot
-        .erase(&partition)
-        .await
-        .map_err(|err| AppError::command(format!("Fastboot erase failed: {err}")));
-    if let Err(err) = result {
-        emit_operation_output(&app, &operation_id, &err.message(), true);
-        emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-        return Err(err);
-    }
+    result_with_emit(
+        fastboot
+            .erase(&partition)
+            .await
+            .map_err(|err| AppError::command(format!("Fastboot erase failed: {err}"))),
+        &app,
+        &operation_id,
+    )?;
 
     emit_operation_complete(&app, &operation_id, true, None);
     Ok(())
@@ -372,14 +282,7 @@ pub async fn fastboot_reboot(
     mode: FastbootRebootMode,
     operation_id: String,
 ) -> Result<(), AppError> {
-    let info = match find_device_info(&device_id) {
-        Ok(info) => info,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let info = result_with_emit(find_device_info(&device_id), &app, &operation_id)?;
 
     emit_operation_output(
         &app,
@@ -390,60 +293,36 @@ pub async fn fastboot_reboot(
 
     match mode {
         FastbootRebootMode::Normal => {
-            let mut fastboot = match open_fastboot(&info) {
-                Ok(fastboot) => fastboot,
-                Err(err) => {
-                    emit_operation_output(&app, &operation_id, &err.message(), true);
-                    emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-                    return Err(err);
-                }
-            };
-            let reboot_result = fastboot
-                .reboot()
-                .await
-                .map_err(|err| AppError::command(format!("Fastboot reboot failed: {err}")));
-            if let Err(err) = reboot_result {
-                emit_operation_output(&app, &operation_id, &err.message(), true);
-                emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-                return Err(err);
-            }
+            let mut fastboot = result_with_emit(open_fastboot(&info), &app, &operation_id)?;
+            result_with_emit(
+                fastboot
+                    .reboot()
+                    .await
+                    .map_err(|err| AppError::command(format!("Fastboot reboot failed: {err}"))),
+                &app,
+                &operation_id,
+            )?;
         }
         FastbootRebootMode::Bootloader => {
-            let mut fastboot = match open_fastboot(&info) {
-                Ok(fastboot) => fastboot,
-                Err(err) => {
-                    emit_operation_output(&app, &operation_id, &err.message(), true);
-                    emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-                    return Err(err);
-                }
-            };
-            let reboot_result = fastboot
-                .reboot_bootloader()
-                .await
-                .map_err(|err| AppError::command(format!("Fastboot reboot failed: {err}")));
-            if let Err(err) = reboot_result {
-                emit_operation_output(&app, &operation_id, &err.message(), true);
-                emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-                return Err(err);
-            }
+            let mut fastboot = result_with_emit(open_fastboot(&info), &app, &operation_id)?;
+            result_with_emit(
+                fastboot
+                    .reboot_bootloader()
+                    .await
+                    .map_err(|err| AppError::command(format!("Fastboot reboot failed: {err}"))),
+                &app,
+                &operation_id,
+            )?;
         }
         FastbootRebootMode::Recovery => {
-            let mut client = match open_raw_fastboot(&info) {
-                Ok(client) => client,
-                Err(err) => {
-                    emit_operation_output(&app, &operation_id, &err.message(), true);
-                    emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-                    return Err(err);
-                }
-            };
-            let reboot_result = send_raw_command(&mut client, "reboot-recovery")
-                .await
-                .map_err(|err| AppError::command(format!("Fastboot reboot failed: {err}")));
-            if let Err(err) = reboot_result {
-                emit_operation_output(&app, &operation_id, &err.message(), true);
-                emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-                return Err(err);
-            }
+            let mut client = result_with_emit(open_raw_fastboot(&info), &app, &operation_id)?;
+            result_with_emit(
+                send_raw_command(&mut client, "reboot-recovery")
+                    .await
+                    .map_err(|err| AppError::command(format!("Fastboot reboot failed: {err}"))),
+                &app,
+                &operation_id,
+            )?;
         }
     }
 
@@ -458,23 +337,9 @@ pub async fn fastboot_set_active_slot(
     slot: FastbootSlot,
     operation_id: String,
 ) -> Result<(), AppError> {
-    let info = match find_device_info(&device_id) {
-        Ok(info) => info,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let info = result_with_emit(find_device_info(&device_id), &app, &operation_id)?;
 
-    let mut client = match open_raw_fastboot(&info) {
-        Ok(client) => client,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let mut client = result_with_emit(open_raw_fastboot(&info), &app, &operation_id)?;
 
     let slot_value = match slot {
         FastbootSlot::A => "a",
@@ -489,14 +354,13 @@ pub async fn fastboot_set_active_slot(
     );
 
     let command = format!("set_active:{slot_value}");
-    let result = send_raw_command(&mut client, &command)
-        .await
-        .map_err(|err| AppError::command(format!("Fastboot set_active failed: {err}")));
-    if let Err(err) = result {
-        emit_operation_output(&app, &operation_id, &err.message(), true);
-        emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-        return Err(err);
-    }
+    result_with_emit(
+        send_raw_command(&mut client, &command)
+            .await
+            .map_err(|err| AppError::command(format!("Fastboot set_active failed: {err}"))),
+        &app,
+        &operation_id,
+    )?;
 
     emit_operation_complete(&app, &operation_id, true, None);
     Ok(())
@@ -508,23 +372,9 @@ pub async fn fastboot_reboot_fastbootd(
     device_id: String,
     operation_id: String,
 ) -> Result<(), AppError> {
-    let info = match find_device_info(&device_id) {
-        Ok(info) => info,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let info = result_with_emit(find_device_info(&device_id), &app, &operation_id)?;
 
-    let mut client = match open_raw_fastboot(&info) {
-        Ok(client) => client,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let mut client = result_with_emit(open_raw_fastboot(&info), &app, &operation_id)?;
 
     emit_operation_output(
         &app,
@@ -533,14 +383,13 @@ pub async fn fastboot_reboot_fastbootd(
         false,
     );
 
-    let result = send_raw_command(&mut client, "reboot-fastboot")
-        .await
-        .map_err(map_fastbootd_error);
-    if let Err(err) = result {
-        emit_operation_output(&app, &operation_id, &err.message(), true);
-        emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-        return Err(err);
-    }
+    result_with_emit(
+        send_raw_command(&mut client, "reboot-fastboot")
+            .await
+            .map_err(map_fastbootd_error),
+        &app,
+        &operation_id,
+    )?;
 
     emit_operation_complete(&app, &operation_id, true, None);
     Ok(())
@@ -567,30 +416,6 @@ fn open_fastboot(info: &nusb::DeviceInfo) -> Result<NusbFastBoot, AppError> {
 
 fn map_open_error(err: NusbFastBootOpenError) -> AppError {
     AppError::command(format!("Failed to open fastboot device: {err}"))
-}
-
-fn emit_operation_output(app: &AppHandle, operation_id: &str, line: &str, is_stderr: bool) {
-    let event = OperationOutputEvent {
-        operation_id: operation_id.to_string(),
-        line: line.to_string(),
-        timestamp: Utc::now().to_rfc3339(),
-        is_stderr,
-    };
-    let _ = app.emit("operation:output", event);
-}
-
-fn emit_operation_complete(
-    app: &AppHandle,
-    operation_id: &str,
-    success: bool,
-    error: Option<String>,
-) {
-    let event = OperationCompleteEvent {
-        operation_id: operation_id.to_string(),
-        success,
-        error,
-    };
-    let _ = app.emit("operation:complete", event);
 }
 
 async fn is_sparse_image(path: &Path) -> Result<bool, AppError> {

@@ -3,9 +3,11 @@
     SPDX-FileCopyrightText: 2025 Shomy
 */
 
-use crate::commands::validate_output_dir;
+use crate::commands::{
+    emit_operation_complete, emit_operation_output, result_with_emit, validate_output_dir,
+};
 use crate::error::AppError;
-use crate::models::{FlashProgress, OperationCompleteEvent, OperationOutputEvent};
+use crate::models::FlashProgress;
 use crate::services::config::load_settings;
 use adb_client::usb::{find_all_connected_adb_devices, ADBDeviceInfo, ADBUSBDevice};
 use adb_client::{ADBDeviceExt, ADBListItem, ADBListItemType, RebootType, RustADBError};
@@ -94,31 +96,26 @@ pub async fn adb_shell_command(
     let mut device = open_device(&device_id)?;
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let exit_code = device
-        .shell_command(&command, Some(&mut stdout), Some(&mut stderr))
-        .map_err(|err| map_adb_error(err, "ADB shell failed"));
+    let exit_code = result_with_emit(
+        device
+            .shell_command(&command, Some(&mut stdout), Some(&mut stderr))
+            .map_err(|err| map_adb_error(err, "ADB shell failed")),
+        &app,
+        &operation_id,
+    )?;
 
-    match exit_code {
-        Ok(code) => {
-            emit_output_bytes(&app, &operation_id, &stdout, false);
-            emit_output_bytes(&app, &operation_id, &stderr, true);
-            if let Some(code) = code {
-                if code != 0 {
-                    let message = format!("Shell exited with code {code}");
-                    emit_operation_output(&app, &operation_id, &message, true);
-                    emit_operation_complete(&app, &operation_id, false, Some(message.clone()));
-                    return Err(AppError::command(message));
-                }
-            }
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(())
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
+    emit_output_bytes(&app, &operation_id, &stdout, false);
+    emit_output_bytes(&app, &operation_id, &stderr, true);
+    if let Some(code) = exit_code {
+        if code != 0 {
+            let message = format!("Shell exited with code {code}");
+            emit_operation_output(&app, &operation_id, &message, true);
+            emit_operation_complete(&app, &operation_id, false, Some(message.clone()));
+            return Err(AppError::command(message));
         }
     }
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(())
 }
 
 #[tauri::command]
@@ -130,25 +127,17 @@ pub async fn adb_list(
 ) -> Result<Vec<AdbListEntry>, AppError> {
     emit_operation_output(&app, &operation_id, &format!("Listing: {path}"), false);
     let mut device = open_device(&device_id)?;
-    let entries = device
-        .list(&path)
-        .map_err(|err| map_adb_error(err, "ADB list failed"));
+    let entries = result_with_emit(
+        device
+            .list(&path)
+            .map_err(|err| map_adb_error(err, "ADB list failed")),
+        &app,
+        &operation_id,
+    )?;
 
-    match entries {
-        Ok(entries) => {
-            let mapped: Vec<AdbListEntry> = entries
-                .into_iter()
-                .map(map_list_entry)
-                .collect();
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(mapped)
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
-        }
-    }
+    let mapped: Vec<AdbListEntry> = entries.into_iter().map(map_list_entry).collect();
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(mapped)
 }
 
 #[tauri::command]
@@ -160,33 +149,28 @@ pub async fn adb_stat(
 ) -> Result<AdbStatResult, AppError> {
     emit_operation_output(&app, &operation_id, &format!("Stat: {path}"), false);
     let mut device = open_device(&device_id)?;
-    let result = device
-        .stat(&path)
-        .map_err(|err| map_adb_error(err, "ADB stat failed"));
+    let stat = result_with_emit(
+        device
+            .stat(&path)
+            .map_err(|err| map_adb_error(err, "ADB stat failed")),
+        &app,
+        &operation_id,
+    )?;
 
-    match result {
-        Ok(stat) => {
-            if stat.file_perm == 0 && stat.file_size == 0 && stat.mod_time == 0 {
-                if let Ok(shell_stat) = shell_stat_fallback(&mut device, &path) {
-                    emit_operation_complete(&app, &operation_id, true, None);
-                    return Ok(shell_stat);
-                }
-            }
-
+    if stat.file_perm == 0 && stat.file_size == 0 && stat.mod_time == 0 {
+        if let Ok(shell_stat) = shell_stat_fallback(&mut device, &path) {
             emit_operation_complete(&app, &operation_id, true, None);
-            Ok(AdbStatResult {
-                file_perm: stat.file_perm,
-                file_size: stat.file_size,
-                mod_time: stat.mod_time,
-                source: "adb".to_string(),
-            })
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
+            return Ok(shell_stat);
         }
     }
+
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(AdbStatResult {
+        file_perm: stat.file_perm,
+        file_size: stat.file_size,
+        mod_time: stat.mod_time,
+        source: "adb".to_string(),
+    })
 }
 
 #[tauri::command]
@@ -223,21 +207,15 @@ pub async fn adb_push(
     let emitter = ProgressEmitter::new(app.clone(), total, "write".into());
     let mut reader = ProgressRead::new(file, total, emitter);
 
-    let result = device
-        .push(&mut reader, &remote_path)
-        .map_err(|err| map_adb_error(err, "ADB push failed"));
-
-    match result {
-        Ok(()) => {
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(())
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
-        }
-    }
+    result_with_emit(
+        device
+            .push(&mut reader, &remote_path)
+            .map_err(|err| map_adb_error(err, "ADB push failed")),
+        &app,
+        &operation_id,
+    )?;
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(())
 }
 
 #[tauri::command]
@@ -257,17 +235,13 @@ pub async fn adb_pull(
     );
 
     let mut device = open_device(&device_id)?;
-    let stat = device
-        .stat(&remote_path)
-        .map_err(|err| map_adb_error(err, "ADB stat failed"));
-    let stat = match stat {
-        Ok(stat) => stat,
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            return Err(err);
-        }
-    };
+    let stat = result_with_emit(
+        device
+            .stat(&remote_path)
+            .map_err(|err| map_adb_error(err, "ADB stat failed")),
+        &app,
+        &operation_id,
+    )?;
 
     let local_path_ref = Path::new(&local_path);
     let parent = local_path_ref.parent().ok_or_else(|| {
@@ -282,21 +256,15 @@ pub async fn adb_pull(
     let emitter = ProgressEmitter::new(app.clone(), total, "read".into());
     let mut writer = ProgressWrite::new(file, total, emitter);
 
-    let result = device
-        .pull(&remote_path, &mut writer)
-        .map_err(|err| map_adb_error(err, "ADB pull failed"));
-
-    match result {
-        Ok(()) => {
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(())
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
-        }
-    }
+    result_with_emit(
+        device
+            .pull(&remote_path, &mut writer)
+            .map_err(|err| map_adb_error(err, "ADB pull failed")),
+        &app,
+        &operation_id,
+    )?;
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(())
 }
 
 #[tauri::command]
@@ -315,23 +283,18 @@ pub async fn adb_auth_check(
     let mut device = open_device(&device_id)?;
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = device
-        .shell_command(&"echo ok", Some(&mut stdout), Some(&mut stderr))
-        .map_err(|err| map_adb_error(err, "ADB authorization check failed"));
+    result_with_emit(
+        device
+            .shell_command(&"echo ok", Some(&mut stdout), Some(&mut stderr))
+            .map_err(|err| map_adb_error(err, "ADB authorization check failed")),
+        &app,
+        &operation_id,
+    )?;
 
-    match result {
-        Ok(_) => {
-            emit_output_bytes(&app, &operation_id, &stdout, false);
-            emit_output_bytes(&app, &operation_id, &stderr, true);
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(())
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
-        }
-    }
+    emit_output_bytes(&app, &operation_id, &stdout, false);
+    emit_output_bytes(&app, &operation_id, &stderr, true);
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(())
 }
 
 #[tauri::command]
@@ -372,21 +335,15 @@ pub async fn adb_uninstall(
         false,
     );
     let mut device = open_device(&device_id)?;
-    let result = device
-        .uninstall(&package_name, None)
-        .map_err(|err| map_adb_error(err, "ADB uninstall failed"));
-
-    match result {
-        Ok(()) => {
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(())
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
-        }
-    }
+    result_with_emit(
+        device
+            .uninstall(&package_name, None)
+            .map_err(|err| map_adb_error(err, "ADB uninstall failed")),
+        &app,
+        &operation_id,
+    )?;
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(())
 }
 
 #[tauri::command]
@@ -399,7 +356,7 @@ pub async fn adb_system_action(
     emit_operation_output(&app, &operation_id, &format!("ADB {action}"), false);
     let mut device = open_device(&device_id)?;
 
-    let result = match action.as_str() {
+    let result: Result<(), AppError> = match action.as_str() {
         "root" => device
             .root()
             .map_err(|err| map_adb_error(err, "ADB root failed")),
@@ -416,17 +373,9 @@ pub async fn adb_system_action(
         _ => Err(AppError::command(format!("Unknown action: {action}"))),
     };
 
-    match result {
-        Ok(()) => {
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(())
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
-        }
-    }
+    result_with_emit(result, &app, &operation_id)?;
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(())
 }
 
 #[tauri::command]
@@ -448,17 +397,9 @@ pub async fn adb_reboot(
         .reboot(reboot_type)
         .map_err(|err| map_adb_error(err, "ADB reboot failed"));
 
-    match result {
-        Ok(()) => {
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(())
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
-        }
-    }
+    result_with_emit(result, &app, &operation_id)?;
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(())
 }
 
 #[tauri::command]
@@ -488,17 +429,9 @@ pub async fn adb_framebuffer_save(
         .framebuffer(&output_path)
         .map_err(|err| map_adb_error(err, "ADB framebuffer failed"));
 
-    match result {
-        Ok(()) => {
-            emit_operation_complete(&app, &operation_id, true, None);
-            Ok(output_path.to_string_lossy().to_string())
-        }
-        Err(err) => {
-            emit_operation_output(&app, &operation_id, &err.message(), true);
-            emit_operation_complete(&app, &operation_id, false, Some(err.message()));
-            Err(err)
-        }
-    }
+    result_with_emit(result, &app, &operation_id)?;
+    emit_operation_complete(&app, &operation_id, true, None);
+    Ok(output_path.to_string_lossy().to_string())
 }
 
 fn adb_device_id(info: &ADBDeviceInfo) -> String {
@@ -526,30 +459,6 @@ fn open_device(device_id: &str) -> Result<ADBUSBDevice, AppError> {
     let key_path = ensure_adb_key_path()?;
     ADBUSBDevice::new_with_custom_private_key(info.vendor_id, info.product_id, key_path)
         .map_err(|err| map_adb_error(err, "Failed to open ADB device"))
-}
-
-fn emit_operation_output(app: &AppHandle, operation_id: &str, line: &str, is_stderr: bool) {
-    let event = OperationOutputEvent {
-        operation_id: operation_id.to_string(),
-        line: line.to_string(),
-        timestamp: Utc::now().to_rfc3339(),
-        is_stderr,
-    };
-    let _ = app.emit("operation:output", event);
-}
-
-fn emit_operation_complete(
-    app: &AppHandle,
-    operation_id: &str,
-    success: bool,
-    error: Option<String>,
-) {
-    let event = OperationCompleteEvent {
-        operation_id: operation_id.to_string(),
-        success,
-        error,
-    };
-    let _ = app.emit("operation:complete", event);
 }
 
 fn emit_operation_progress(app: &AppHandle, current: u64, total: u64, operation: &str) {
