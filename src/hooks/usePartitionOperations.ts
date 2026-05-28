@@ -45,6 +45,7 @@ export function usePartitionOperations() {
     partition: Partition;
     successMessage: string;
     openLogPanel?: boolean;
+    clearLogs?: boolean;
     run: (operationId: string) => Promise<void>;
   }): Promise<boolean> => {
     if (!daPath) return false;
@@ -58,6 +59,7 @@ export function usePartitionOperations() {
         partitionSize: params.partition.display_size,
         successMessage: params.successMessage,
         openLogPanel: params.openLogPanel ?? true,
+        clearLogs: params.clearLogs,
         run: params.run,
       });
       return result.success;
@@ -104,7 +106,8 @@ export function usePartitionOperations() {
   const writePartition = async (
     partition: Partition,
     imagePath: string,
-    openLogPanel = true
+    openLogPanel = true,
+    clearLogs?: boolean
   ): Promise<boolean> => {
     return runPartitionOperation({
       operation: 'Write partition',
@@ -112,6 +115,7 @@ export function usePartitionOperations() {
       partition,
       successMessage: `Successfully flashed ${partition.name}`,
       openLogPanel,
+      clearLogs,
       run: (operationId) =>
         PartitionApi.write({
           daPath: daPath as string,

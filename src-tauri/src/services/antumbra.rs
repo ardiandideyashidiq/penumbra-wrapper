@@ -3,7 +3,7 @@
     SPDX-FileCopyrightText: 2025 Shomy
 */
 
-use crate::commands::helpers::is_dir_writable;
+use crate::commands::helpers::{emit_operation_progress, is_dir_writable};
 use crate::models::{OperationCompleteEvent, OperationOutputEvent};
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -278,6 +278,9 @@ impl AntumbraExecutor {
             .await;
         });
 
+        // Emit initial progress so the frontend knows the operation is live
+        emit_operation_progress(&app, 0, 1, "", "antumbra");
+
         let status = self
             .wait_for_process_with_timeout(&mut child, &app, &operation_id, &last_output, &options)
             .await?;
@@ -300,6 +303,11 @@ impl AntumbraExecutor {
                 String::new()
             }
         };
+
+        log::info!(
+            "antumbra process finished: success={}, operation_id={}",
+            status.success(), operation_id
+        );
 
         clear_current_pid();
 

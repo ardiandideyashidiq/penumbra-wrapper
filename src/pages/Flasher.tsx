@@ -150,7 +150,14 @@ export function Flasher() {
   };
 
   const handleFlash = async () => {
-    if (!daPath || !canFlash || !scatterFile || isFlashing || isExecuting) return;
+    if (!daPath || !canFlash || !scatterFile || isFlashing || isExecuting) {
+      if (!scatterFile) toast('Load a scatter file first');
+      else if (!daPath) toast('No DA file selected');
+      else if (!isConnected) toast('Connect a device first');
+      else if (selectedCount === 0) toast('Select partitions to flash');
+      else if (missingImagesCount > 0) toast(`${missingImagesCount} partition(s) missing image files`);
+      return;
+    }
 
     const selectedNames = selectedFlashOrder;
     const total = selectedNames.length;
@@ -189,8 +196,7 @@ export function Flasher() {
         display_size: formatHexSize(partition.partition_size),
       };
 
-      const success = await writePartition(partitionData, imagePath, false);
-      
+      const success = await writePartition(partitionData, imagePath, false, false);      
       if (!success) {
         failed = true;
         failedPartitionName = partitionName;

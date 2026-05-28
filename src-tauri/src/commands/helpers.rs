@@ -1,5 +1,5 @@
 use crate::error::AppError;
-use crate::models::{OperationCompleteEvent, OperationOutputEvent};
+use crate::models::{FlashProgress, OperationCompleteEvent, OperationOutputEvent};
 use crate::services::antumbra::AntumbraExecutor;
 use chrono::Utc;
 use std::fs::OpenOptions;
@@ -34,6 +34,24 @@ pub fn emit_operation_complete(
         error,
     };
     let _ = app.emit("operation:complete", event);
+}
+
+pub fn emit_operation_progress(
+    app: &AppHandle,
+    current: u64,
+    total: u64,
+    partition_name: &str,
+    operation: &str,
+) {
+    let pct = if total > 0 { current as f32 / total as f32 * 100.0 } else { 0.0 };
+    let event = FlashProgress {
+        current,
+        total,
+        percentage: pct,
+        partition_name: partition_name.to_string(),
+        operation: operation.to_string(),
+    };
+    let _ = app.emit("operation:progress", event);
 }
 
 pub fn result_with_emit<T>(
@@ -133,6 +151,10 @@ pub async fn execute_antumbra_command(
     preloader_path: Option<&str>,
     args: Vec<String>,
 ) -> Result<(), AppError> {
+    log::info!(
+        "execute_antumbra_command: op={}, da={:?}, preloader={:?}, args={:?}",
+        operation_id, da_path, preloader_path, args
+    );
     validate_da_preloader_paths(da_path, preloader_path)?;
     let executor = AntumbraExecutor::new(&app)?;
 
