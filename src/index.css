@@ -45,7 +45,7 @@
   --surface: #18181b;
   --surface-alt: #27272a;
   --surface-hover: #3f3f46;
-  --border: #27272a;
+  --border: #3f3f46;
   --text: #f4f4f5;
   --text-muted: #a1a1aa;
   --text-subtle: #71717a;
@@ -86,6 +86,11 @@
   --color-surface-hover: var(--surface-hover);
   --color-card: var(--surface);
   --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-muted: var(--surface-alt);
+  --color-muted-foreground: var(--text-muted);
+  --color-subtle-foreground: var(--text-subtle);
   --color-border: var(--border);
   --color-input: var(--surface-alt);
   --color-primary: var(--primary);
@@ -100,6 +105,8 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
   --color-accent-foreground: var(--accent-foreground);
+  --color-info: var(--primary);
+  --color-info-foreground: var(--primary-foreground);
   --color-success: var(--success);
   --color-success-hover: var(--success-hover);
   --color-success-soft: var(--success-soft);
@@ -114,9 +121,12 @@
   --color-danger-foreground: var(--danger-foreground);
   --color-destructive: var(--danger);
   --color-destructive-foreground: var(--danger-foreground);
-  --color-muted-foreground: var(--text-muted);
-  --color-subtle-foreground: var(--text-subtle);
   --color-ring: var(--primary);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
 
   --animate-modal-enter: modal-enter 200ms ease-out;
   --animate-modal-exit: modal-exit 180ms ease-in;

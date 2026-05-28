@@ -5,7 +5,9 @@ export const THEME_STORAGE_KEY = 'uiTheme'
 export function getInitialTheme(): ThemeMode {
   if (typeof window === 'undefined') return 'dark'
   const storedTheme = localStorage.getItem(THEME_STORAGE_KEY)
-  return storedTheme === 'light' ? 'light' : 'dark'
+  if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'
+  return 'light'
 }
 
 export function applyTheme(theme: ThemeMode) {

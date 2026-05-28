@@ -17,13 +17,13 @@ export function ProgressBar({
     <div className={className}>
       {(showPercentage || status) && (
         <div className="mb-2 flex items-center justify-between text-sm">
-          {status && <span className="text-zinc-400">{status}</span>}
+          {status && <span className="text-subtle-foreground">{status}</span>}
           {showPercentage && (
-            <span className="font-medium text-white">{clampedProgress.toFixed(1)}%</span>
+            <span className="font-medium text-foreground">{clampedProgress.toFixed(1)}%</span>
           )}
         </div>
       )}
-      <div className="h-3 w-full overflow-hidden rounded-full bg-zinc-800">
+      <div className="h-3 w-full overflow-hidden rounded-full bg-surface-hover">
         <div
           className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-300 ease-out"
           style={{ width: `${clampedProgress}%` }}

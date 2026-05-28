@@ -90,6 +90,7 @@ export function ConfirmationModal({
           borderColor: 'border-danger',
           iconColor: 'text-danger',
           buttonBg: 'bg-danger hover:bg-danger-hover',
+          buttonText: 'text-danger-foreground',
           icon: AlertTriangle,
         };
       case 'warning':
@@ -97,6 +98,7 @@ export function ConfirmationModal({
           borderColor: 'border-warning',
           iconColor: 'text-warning',
           buttonBg: 'bg-warning hover:bg-warning-hover',
+          buttonText: 'text-warning-foreground',
           icon: AlertCircle,
         };
       case 'info':
@@ -104,6 +106,7 @@ export function ConfirmationModal({
           borderColor: 'border-primary',
           iconColor: 'text-primary',
           buttonBg: 'bg-primary hover:bg-primary-hover',
+          buttonText: 'text-primary-foreground',
           icon: Info,
         };
     }
@@ -168,7 +171,7 @@ export function ConfirmationModal({
             <button
               onClick={onConfirm}
               disabled={isConfirmDisabled}
-              className={`rounded px-4 py-2 text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles.buttonBg}`}
+              className={`rounded px-4 py-2 ${styles.buttonText} transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles.buttonBg}`}
             >
               {isLoading ? 'Processing...' : confirmButtonText}
             </button>

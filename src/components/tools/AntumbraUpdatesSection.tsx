@@ -22,7 +22,7 @@ export function AntumbraUpdatesSection({
     <section className="rounded-lg border border-border bg-surface-alt p-4">
       <div className="mb-4 flex items-start gap-3">
         <div className="rounded-lg bg-success-soft p-3">
-          <Download className="w-6 h-6 text-emerald-400" />
+          <Download className="w-6 h-6 text-success" />
         </div>
         <div className="flex-1">
           <h2 className="text-lg font-semibold text-foreground">Antumbra Updates</h2>

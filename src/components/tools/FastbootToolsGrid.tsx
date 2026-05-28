@@ -185,7 +185,7 @@ export function FastbootToolsGrid({
             </div>
             <div className="flex items-center gap-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs text-muted-foreground">
-                <span className={`h-2 w-2 rounded-full ${hasDevices ? 'bg-emerald-400' : 'bg-border'}`} />
+                <span className={`h-2 w-2 rounded-full ${hasDevices ? 'bg-success' : 'bg-border'}`} />
                 {hasDevices ? (isDeviceSelected ? 'Device selected' : 'Select a device') : 'No device'}
               </div>
               <div className="relative" ref={rebootRef}>

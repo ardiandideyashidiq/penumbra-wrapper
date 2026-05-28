@@ -123,7 +123,7 @@ export function FlashProgressModal({
           <div className="flex items-center justify-between gap-3 border-t border-border bg-surface p-4">
             <button
               onClick={onClose}
-              className="rounded bg-danger px-4 py-2 text-white transition-colors hover:bg-danger-hover"
+              className="rounded bg-danger px-4 py-2 text-danger-foreground transition-colors hover:bg-danger-hover"
             >
               Cancel
             </button>

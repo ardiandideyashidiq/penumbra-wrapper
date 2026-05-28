@@ -22,7 +22,7 @@ export function LogConsole({ logs, className = '' }: LogConsoleProps) {
         return 'text-danger';
       case 'warn':
       case 'warning':
-        return 'text-yellow-400';
+        return 'text-warning';
       case 'success':
         return 'text-success';
       case 'info':
