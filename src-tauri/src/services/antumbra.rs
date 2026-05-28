@@ -278,36 +278,9 @@ impl AntumbraExecutor {
             .await;
         });
 
-        // Wait for process completion. Some valid operations stay quiet for long periods,
-        // so inactivity timeouts are opt-in instead of being enforced globally.
-        let status = if let Some(timeout) = options.inactivity_timeout {
-            let mut interval = tokio::time::interval(Duration::from_secs(1));
-            loop {
-                tokio::select! {
-                    status = child.wait() => break status.context("Failed to wait for process")?,
-                    _ = interval.tick() => {
-                        let last = last_output.load(Ordering::Relaxed);
-                        if now_millis().saturating_sub(last) > timeout.as_millis() as u64 {
-                            let _ = child.kill().await;
-                            clear_current_pid();
-                            let error_msg = format!(
-                                "Antumbra process timed out after {:.0}s without output",
-                                timeout.as_secs_f64()
-                            );
-                            let complete_event = OperationCompleteEvent {
-                                operation_id: operation_id.clone(),
-                                success: false,
-                                error: Some(error_msg.clone()),
-                            };
-                            let _ = app.emit("operation:complete", complete_event);
-                            anyhow::bail!(error_msg);
-                        }
-                    }
-                }
-            }
-        } else {
-            child.wait().await.context("Failed to wait for process")?
-        };
+        let status = self
+            .wait_for_process_with_timeout(&mut child, &app, &operation_id, &last_output, &options)
+            .await?;
 
         // Wait for streaming tasks to complete
         let _ = tokio::join!(stdout_task, stderr_task);
@@ -345,6 +318,46 @@ impl AntumbraExecutor {
         }
 
         Ok(stdout_output)
+    }
+
+    /// Wait for process to finish, with optional inactivity timeout.
+    /// Some valid operations stay quiet for long periods, so timeouts are opt-in.
+    async fn wait_for_process_with_timeout(
+        &self,
+        child: &mut tokio::process::Child,
+        app: &AppHandle,
+        operation_id: &str,
+        last_output: &AtomicU64,
+        options: &StreamingOptions,
+    ) -> Result<std::process::ExitStatus> {
+        if let Some(timeout) = options.inactivity_timeout {
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            loop {
+                tokio::select! {
+                    status = child.wait() => return status.context("Failed to wait for process"),
+                    _ = interval.tick() => {
+                        let last = last_output.load(Ordering::Relaxed);
+                        if now_millis().saturating_sub(last) > timeout.as_millis() as u64 {
+                            let _ = child.kill().await;
+                            clear_current_pid();
+                            let error_msg = format!(
+                                "Antumbra process timed out after {:.0}s without output",
+                                timeout.as_secs_f64()
+                            );
+                            let complete_event = OperationCompleteEvent {
+                                operation_id: operation_id.to_string(),
+                                success: false,
+                                error: Some(error_msg.clone()),
+                            };
+                            let _ = app.emit("operation:complete", complete_event);
+                            anyhow::bail!(error_msg);
+                        }
+                    }
+                }
+            }
+        } else {
+            child.wait().await.context("Failed to wait for process")
+        }
     }
 
     pub fn get_version(&self) -> Result<String> {
