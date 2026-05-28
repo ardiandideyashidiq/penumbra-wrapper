@@ -1,5 +1,6 @@
 import { FolderOpen, Download } from 'lucide-react';
 import { getBasename } from '../../services/utils/pathUtils';
+import { Button } from '../ui/button';
 
 interface DashboardHeaderProps {
   daPath: string | null;
@@ -29,71 +30,47 @@ export function DashboardHeader({
   onCheckUpdates,
 }: DashboardHeaderProps) {
   return (
-    <header className="border-b border-[var(--border)] p-4 bg-[var(--surface)] backdrop-blur-sm flex-shrink-0">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <header className="flex-shrink-0 border-b border-border bg-surface p-3 backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {onCheckUpdates && (
-          <button
-            onClick={onCheckUpdates}
-            disabled={isCheckingUpdate}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] border border-[var(--primary)] rounded transition-colors text-sm text-[var(--primary-foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download className="w-4 h-4" />
+          <Button onClick={onCheckUpdates} disabled={isCheckingUpdate} size="sm">
+            <Download className="h-4 w-4" />
             {isCheckingUpdate ? 'Checking...' : 'Update Antumbra'}
-          </button>
+          </Button>
         )}
 
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-[var(--text-muted)] font-medium">DA:</label>
-            <button
-              onClick={onSelectDa}
-              disabled={isSettingsLoading}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FolderOpen className="w-4 h-4" />
+            <label className="text-sm font-medium text-muted-foreground">DA:</label>
+            <Button onClick={onSelectDa} disabled={isSettingsLoading} variant="outline" size="sm">
+              <FolderOpen className="h-4 w-4" />
               {daPath ? getBasename(daPath) : 'Select DA'}
-            </button>
+            </Button>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm text-[var(--text-muted)] font-medium">Preloader:</label>
-            <button
-              onClick={onSelectPreloader}
-              disabled={isSettingsLoading}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FolderOpen className="w-4 h-4" />
+            <label className="text-sm font-medium text-muted-foreground">Preloader:</label>
+            <Button onClick={onSelectPreloader} disabled={isSettingsLoading} variant="outline" size="sm">
+              <FolderOpen className="h-4 w-4" />
               {preloaderPath ? getBasename(preloaderPath) : 'Optional'}
-            </button>
+            </Button>
             {preloaderPath && (
-              <button
-                onClick={onClearPreloader}
-                disabled={isSettingsLoading}
-                className="px-2 py-1.5 bg-[var(--danger)] hover:bg-[var(--danger-hover)] rounded transition-colors text-sm text-[var(--danger-foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={onClearPreloader} disabled={isSettingsLoading} variant="destructive" size="sm" className="px-2">
                 ✕
-              </button>
+              </Button>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm text-[var(--text-muted)] font-medium">Output:</label>
-            <button
-              onClick={onSelectOutput}
-              disabled={isSettingsLoading}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FolderOpen className="w-4 h-4" />
+            <label className="text-sm font-medium text-muted-foreground">Output:</label>
+            <Button onClick={onSelectOutput} disabled={isSettingsLoading} variant="outline" size="sm">
+              <FolderOpen className="h-4 w-4" />
               {defaultOutputPath ? getBasename(defaultOutputPath) : 'Select Output'}
-            </button>
+            </Button>
             {defaultOutputPath && (
-              <button
-                onClick={onClearOutput}
-                disabled={isSettingsLoading}
-                className="px-2 py-1.5 bg-[var(--danger)] hover:bg-[var(--danger-hover)] rounded transition-colors text-sm text-[var(--danger-foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={onClearOutput} disabled={isSettingsLoading} variant="destructive" size="sm" className="px-2">
                 ✕
-              </button>
+              </Button>
             )}
           </div>
         </div>

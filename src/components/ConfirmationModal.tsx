@@ -87,23 +87,23 @@ export function ConfirmationModal({
     switch (variant) {
       case 'danger':
         return {
-          borderColor: 'border-[var(--danger)]',
-          iconColor: 'text-[var(--danger)]',
-          buttonBg: 'bg-[var(--danger)] hover:bg-[var(--danger-hover)]',
+          borderColor: 'border-danger',
+          iconColor: 'text-danger',
+          buttonBg: 'bg-danger hover:bg-danger-hover',
           icon: AlertTriangle,
         };
       case 'warning':
         return {
-          borderColor: 'border-[var(--warning)]',
-          iconColor: 'text-[var(--warning)]',
-          buttonBg: 'bg-[var(--warning)] hover:bg-[var(--warning-hover)]',
+          borderColor: 'border-warning',
+          iconColor: 'text-warning',
+          buttonBg: 'bg-warning hover:bg-warning-hover',
           icon: AlertCircle,
         };
       case 'info':
         return {
-          borderColor: 'border-[var(--primary)]',
-          iconColor: 'text-[var(--primary)]',
-          buttonBg: 'bg-[var(--primary)] hover:bg-[var(--primary-hover)]',
+          borderColor: 'border-primary',
+          iconColor: 'text-primary',
+          buttonBg: 'bg-primary hover:bg-primary-hover',
           icon: Info,
         };
     }
@@ -129,26 +129,26 @@ export function ConfirmationModal({
 
       {/* Modal */}
       <div
-        className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-lg mx-4 transition-all duration-300 ${
+        className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md mx-3 transition-all duration-300 ${
           isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         }`}
       >
-        <div className={`bg-[var(--surface)] rounded-lg border-2 ${styles.borderColor} shadow-2xl overflow-hidden`}>
+        <div className={`bg-surface rounded-md border-2 ${styles.borderColor} shadow-2xl overflow-hidden`}>
           {/* Header */}
-          <div className="flex items-start gap-3 p-5 border-b border-[var(--border)]">
+          <div className="flex items-start gap-3 p-4 border-b border-border">
             <Icon className={`w-6 h-6 ${styles.iconColor} flex-shrink-0 mt-0.5`} />
-            <h2 className="text-xl font-semibold text-[var(--text)] flex-1">{title}</h2>
+            <h2 className="text-xl font-semibold text-foreground flex-1">{title}</h2>
             <button
               onClick={onClose}
               disabled={isLoading}
-              className="p-1 hover:bg-[var(--surface-alt)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded p-1 transition-colors hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <X className="w-5 h-5 text-[var(--text-muted)]" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
 
           {/* Content */}
-          <div className="p-5 text-[var(--text)] text-sm leading-relaxed">
+          <div className="p-4 text-sm leading-relaxed text-foreground">
             {typeof message === 'string' ? (
               <p className="whitespace-pre-line">{message}</p>
             ) : (
@@ -157,18 +157,18 @@ export function ConfirmationModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-5 border-t border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex items-center justify-end gap-3 border-t border-border bg-surface p-4">
             <button
               onClick={onClose}
               disabled={isLoading}
-              className="px-5 py-2 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] text-[var(--text)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded bg-surface-alt px-4 py-2 text-foreground transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {cancelText}
             </button>
             <button
               onClick={onConfirm}
               disabled={isConfirmDisabled}
-              className={`px-5 py-2 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${styles.buttonBg}`}
+              className={`rounded px-4 py-2 text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles.buttonBg}`}
             >
               {isLoading ? 'Processing...' : confirmButtonText}
             </button>

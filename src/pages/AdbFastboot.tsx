@@ -410,8 +410,8 @@ export function AdbFastboot() {
       title: '⚠️ Erase Partition',
       message: (
         <div>
-          <p className="font-semibold text-[var(--danger)] mb-2">This will permanently erase:</p>
-          <p className="font-mono text-sm bg-[var(--surface-alt)] p-2 rounded">{trimmed}</p>
+          <p className="font-semibold text-danger mb-2">This will permanently erase:</p>
+          <p className="font-mono text-sm bg-surface-alt p-2 rounded">{trimmed}</p>
           <p className="mt-3">Are you sure you want to continue?</p>
         </div>
       ),
@@ -853,8 +853,8 @@ export function AdbFastboot() {
   const adbTransferStatusLabel = isAdbFileRunning ? adbTransferStatus : null;
 
   return (
-    <div className="h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col">
-      <div className="px-6 py-4 border-b border-[var(--border)] flex justify-end">
+    <div className="h-screen bg-background text-foreground flex flex-col">
+      <div className="flex justify-end border-b border-border px-4 py-3">
         <DeviceTabs
           tabs={[
             { id: 'adb', label: 'ADB' },
@@ -865,7 +865,7 @@ export function AdbFastboot() {
         />
       </div>
 
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto p-4">
         {activeTab === 'adb' ? (
           <AdbToolsGrid
             devices={adbDevices}

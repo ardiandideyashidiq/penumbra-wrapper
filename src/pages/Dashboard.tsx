@@ -368,7 +368,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col">
+    <div className="h-screen bg-background text-foreground flex flex-col">
       <DashboardHeader
         daPath={daPath}
         preloaderPath={preloaderPath}
@@ -383,7 +383,7 @@ export function Dashboard() {
         onCheckUpdates={handleCheckUpdates}
       />
 
-      <main className="flex-1 overflow-hidden p-6">
+      <main className="flex-1 overflow-hidden p-4">
         {!isConnected && (
           <ConnectionPanel
             isConnecting={isConnecting}

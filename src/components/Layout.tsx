@@ -7,6 +7,8 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { Terminal, Grid, FileStack, Wrench, Sun, Moon, Cpu, Zap } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { useFlasherStore } from '../store/flasherStore';
+import { Button } from './ui/button';
+import { cn } from '../lib/utils';
 
 export function Layout() {
   const toggleLogPanel = useUIStore((state) => state.toggleLogPanel);
@@ -19,113 +21,103 @@ export function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex">
-      {/* Sidebar Navigation */}
-      <nav className="w-64 bg-[var(--surface)] border-r border-[var(--border)] flex flex-col">
-        {/* Logo/Brand */}
-        <div className="p-6 border-b border-[var(--border)]">
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+    <div className="flex min-h-screen bg-background text-foreground">
+      <nav className="flex w-60 flex-col border-r border-border bg-surface">
+        <div className="border-b border-border p-4">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-violet-500">
             Penumbra
           </h1>
-          <p className="text-xs text-[var(--text-subtle)] mt-1">MediaTek Flash Tool</p>
+          <p className="mt-1 text-xs text-subtle-foreground">MediaTek Flash Tool</p>
         </div>
 
-        {/* Navigation Links */}
-        <div className="flex-1 p-4 space-y-2">
+        <div className="flex-1 space-y-2 p-3">
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              cn(
+                'flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors',
                 isActive
-                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-alt)] hover:text-[var(--text)]'
-              }`
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-surface-alt hover:text-foreground'
+              )
             }
           >
-            <Grid className="w-5 h-5" />
+            <Grid className="h-5 w-5" />
             <span className="font-medium">Dashboard</span>
           </NavLink>
 
           <NavLink
             to="/flasher"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              cn(
+                'flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors',
                 isActive
-                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-alt)] hover:text-[var(--text)]'
-              }`
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-surface-alt hover:text-foreground'
+              )
             }
           >
-            <FileStack className="w-5 h-5" />
+            <FileStack className="h-5 w-5" />
             <span className="font-medium">Flasher</span>
           </NavLink>
 
           <NavLink
             to="/tools"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              cn(
+                'flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors',
                 isActive
-                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-alt)] hover:text-[var(--text)]'
-              }`
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-surface-alt hover:text-foreground'
+              )
             }
           >
-            <Wrench className="w-5 h-5" />
+            <Wrench className="h-5 w-5" />
             <span className="font-medium">Tools</span>
           </NavLink>
 
           <NavLink
             to="/adb-fastboot"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              cn(
+                'flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors',
                 isActive
-                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-alt)] hover:text-[var(--text)]'
-              }`
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-surface-alt hover:text-foreground'
+              )
             }
           >
-            <Cpu className="w-5 h-5" />
+            <Cpu className="h-5 w-5" />
             <span className="font-medium">ADB & Fastboot</span>
           </NavLink>
         </div>
 
-        {/* Log Panel Toggle (Bottom) */}
-        <div className="p-4 border-t border-[var(--border)] space-y-2">
+        <div className="space-y-2 border-t border-border p-3">
           {isFlashing && flashModalMinimized && (
-            <button
+            <Button
               onClick={handleFlashIndicatorClick}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-lg transition-colors text-[var(--accent-foreground)]"
+              variant="warning"
+              className="w-full justify-start"
               title="Show flash progress"
             >
-              <Zap className="w-5 h-5 animate-pulse" />
+              <Zap className="h-5 w-5 animate-pulse" />
               <span className="font-medium">
                 Flashing {currentFlashIndex}/{totalFlashCount}
               </span>
-            </button>
+            </Button>
           )}
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]"
-            title="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            <span className="font-medium">
-              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-            </span>
-          </button>
-          <button
-            onClick={toggleLogPanel}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border)]"
-            title="Toggle logs"
-          >
-            <Terminal className="w-5 h-5" />
+          <Button onClick={toggleTheme} variant="outline" className="w-full justify-start" title="Toggle theme">
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            <span className="font-medium">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          </Button>
+          <Button onClick={toggleLogPanel} variant="outline" className="w-full justify-start" title="Toggle logs">
+            <Terminal className="h-5 w-5" />
             <span className="font-medium">Logs</span>
-          </button>
+          </Button>
         </div>
       </nav>
 
-      {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">
         <Outlet />
       </div>

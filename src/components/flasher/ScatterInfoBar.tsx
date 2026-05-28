@@ -9,23 +9,23 @@ interface ScatterInfoBarProps {
 
 export function ScatterInfoBar({ scatterFile, onSelectAll, onClearAll }: ScatterInfoBarProps) {
   return (
-    <div className="flex items-center justify-between p-4 bg-[var(--surface-alt)] rounded-lg border border-[var(--border)] flex-shrink-0 mb-4">
-      <div className="flex items-center gap-6 text-sm">
+    <div className="mb-4 flex flex-shrink-0 items-center justify-between rounded-md border border-border bg-surface-alt p-3">
+      <div className="flex items-center gap-4 text-sm">
         <div>
-          <span className="text-[var(--text-subtle)]">Platform:</span>{' '}
-          <span className="font-mono text-[var(--text)]">{scatterFile.platform}</span>
+          <span className="text-subtle-foreground">Platform:</span>{' '}
+          <span className="font-mono text-foreground">{scatterFile.platform}</span>
         </div>
         <div>
-          <span className="text-[var(--text-subtle)]">Project:</span>{' '}
-          <span className="font-mono text-[var(--text)]">{scatterFile.project}</span>
+          <span className="text-subtle-foreground">Project:</span>{' '}
+          <span className="font-mono text-foreground">{scatterFile.project}</span>
         </div>
         <div>
-          <span className="text-[var(--text-subtle)]">Storage:</span>{' '}
-          <span className="font-mono text-[var(--text)]">{scatterFile.storage_type}</span>
+          <span className="text-subtle-foreground">Storage:</span>{' '}
+          <span className="font-mono text-foreground">{scatterFile.storage_type}</span>
         </div>
         <div>
-          <span className="text-[var(--text-subtle)]">File:</span>{' '}
-          <span className="font-mono text-[var(--text)] text-xs">
+          <span className="text-subtle-foreground">File:</span>{' '}
+          <span className="font-mono text-foreground text-xs">
             {getBasename(scatterFile.file_path)}
           </span>
         </div>
@@ -33,13 +33,13 @@ export function ScatterInfoBar({ scatterFile, onSelectAll, onClearAll }: Scatter
       <div className="flex items-center gap-2">
         <button
           onClick={onSelectAll}
-          className="px-3 py-1.5 text-sm bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded transition-colors"
+          className="rounded px-3 py-1.5 text-sm text-accent-foreground transition-colors hover:bg-accent-hover"
         >
           Select All
         </button>
         <button
           onClick={onClearAll}
-          className="px-3 py-1.5 text-sm bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded transition-colors"
+          className="rounded px-3 py-1.5 text-sm text-accent-foreground transition-colors hover:bg-accent-hover"
         >
           Deselect All
         </button>

@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, memo } from 'react';
+import { X, FolderOpen, AlertTriangle } from 'lucide-react';
 import { useDeviceStore } from '../store/deviceStore';
 import type { Partition } from '../types';
 import { PartitionApi } from '../services/api/partitionApi';
 import { executeOperation } from '../services/operations/executeOperation';
 import { DialogType } from '../services/dialogs/fileDialogService';
 import { generateTimestampedFilename, joinPath, getBasename } from '../services/utils/pathUtils';
-import { X, FolderOpen, AlertTriangle } from 'lucide-react';
 import { exists } from '@tauri-apps/plugin-fs';
 import { useFileSelection } from '../hooks/useFileSelection';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 
 interface OperationModalProps {
   isOpen: boolean;
@@ -16,295 +19,244 @@ interface OperationModalProps {
   operation: 'read' | 'write';
 }
 
-export const OperationModal = memo<OperationModalProps>(({
-  isOpen,
-  onClose,
-  partition,
-  operation,
-}) => {
-  const { daPath, preloaderPath, defaultOutputPath } = useDeviceStore();
-  const { selectFile, saveFile } = useFileSelection();
-  const [filePath, setFilePath] = useState<string>('');
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+export const OperationModal = memo<OperationModalProps>(
+  ({ isOpen, onClose, partition, operation }) => {
+    const { daPath, preloaderPath, defaultOutputPath } = useDeviceStore();
+    const { selectFile, saveFile } = useFileSelection();
+    const [filePath, setFilePath] = useState<string>('');
+    const [isExecuting, setIsExecuting] = useState(false);
+    const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
 
-  const checkFileExists = useCallback(async (path: string) => {
-    try {
-      const fileExists = await exists(path);
-      setShowOverwriteConfirm(fileExists);
-    } catch (error) {
-      console.error('Error checking file existence:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Reset and setup when modal opens
-    if (isOpen && partition) {
-      setFilePath('');
-      setIsExecuting(false);
-      setShowOverwriteConfirm(false);
-
-      // For read operations with default output path set
-      if (operation === 'read' && defaultOutputPath) {
-        const filename = generateTimestampedFilename(partition.name, 'img');
-        const autoPath = joinPath(defaultOutputPath, filename);
-        setFilePath(autoPath);
-
-        // Check if file exists
-        checkFileExists(autoPath);
+    const checkFileExists = useCallback(async (path: string) => {
+      try {
+        const fileExists = await exists(path);
+        setShowOverwriteConfirm(fileExists);
+      } catch (error) {
+        console.error('Error checking file existence:', error);
       }
-    }
-  }, [isOpen, partition, operation, defaultOutputPath, checkFileExists]);
+    }, []);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    if (operation !== 'read') {
-      setShowOverwriteConfirm(false);
-      return;
-    }
-    if (!filePath) {
-      setShowOverwriteConfirm(false);
-      return;
-    }
+    useEffect(() => {
+      if (isOpen && partition) {
+        setFilePath('');
+        setIsExecuting(false);
+        setShowOverwriteConfirm(false);
 
-    checkFileExists(filePath);
-  }, [filePath, operation, isOpen, checkFileExists]);
-
-  // Keyboard shortcut: Escape to close modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isExecuting) {
-        onClose();
+        if (operation === 'read' && defaultOutputPath) {
+          const filename = generateTimestampedFilename(partition.name, 'img');
+          const autoPath = joinPath(defaultOutputPath, filename);
+          setFilePath(autoPath);
+          checkFileExists(autoPath);
+        }
       }
-    };
+    }, [isOpen, partition, operation, defaultOutputPath, checkFileExists]);
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isExecuting, onClose]);
-
-  const handleBrowse = useCallback(async () => {
-    if (operation === 'write') {
-      // Select image file
-      const selected = await selectFile(DialogType.IMAGE_FILE, undefined, {
-        title: 'Select Image File',
-      });
-      if (selected) {
-        setFilePath(selected as string);
+    useEffect(() => {
+      if (!isOpen) return;
+      if (operation !== 'read') {
+        setShowOverwriteConfirm(false);
+        return;
       }
-    } else {
-      // Save location for read
-      const defaultName = generateTimestampedFilename(partition?.name || 'partition', 'img');
-
-      // Use default output path if available
-      const defaultPath = defaultOutputPath
-        ? joinPath(defaultOutputPath, defaultName)
-        : defaultName;
-
-      const selected = await saveFile({
-        title: 'Save Partition Backup',
-        defaultPath,
-        defaultExtension: 'img',
-      });
-      if (selected) {
-        setFilePath(selected as string);
-        setShowOverwriteConfirm(false); // Reset confirmation if user picks new location
+      if (!filePath) {
+        setShowOverwriteConfirm(false);
+        return;
       }
-    }
-  }, [operation, partition, defaultOutputPath, selectFile, saveFile]);
 
-  const handleStart = useCallback(async (forceOverwrite: boolean = false) => {
-    if (!partition || !filePath) return;
+      checkFileExists(filePath);
+    }, [filePath, operation, isOpen, checkFileExists]);
 
-    // If file exists and user hasn't confirmed, show warning
-    if (showOverwriteConfirm && !forceOverwrite) {
-      return; // Don't proceed, wait for user confirmation
-    }
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && isOpen && !isExecuting) {
+          onClose();
+        }
+      };
 
-    setIsExecuting(true);
-    
-    // Close modal immediately with animation
-    onClose();
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, isExecuting, onClose]);
 
-    try {
+    const handleBrowse = useCallback(async () => {
       if (operation === 'write') {
-        await executeOperation({
-          operation: 'Write partition',
-          type: 'write',
-          partitionName: partition.name,
-          partitionSize: partition.display_size,
-          successMessage: `Successfully flashed ${partition.name}`,
-          run: (operationId) =>
-            PartitionApi.write({
-              daPath: daPath!,
-              partition: partition.name,
-              imagePath: filePath,
-              preloaderPath: preloaderPath || undefined,
-              operationId,
-            }),
+        const selected = await selectFile(DialogType.IMAGE_FILE, undefined, {
+          title: 'Select Image File',
         });
+        if (selected) {
+          setFilePath(selected as string);
+        }
       } else {
-        await executeOperation({
-          operation: 'Read partition',
-          type: 'read',
-          partitionName: partition.name,
-          partitionSize: partition.display_size,
-          successMessage: `Successfully read ${partition.name}`,
-          run: (operationId) =>
-            PartitionApi.read({
-              daPath: daPath!,
-              partition: partition.name,
-              outputPath: filePath,
-              preloaderPath: preloaderPath || undefined,
-              operationId,
-            }),
+        const defaultName = generateTimestampedFilename(partition?.name || 'partition', 'img');
+        const defaultPath = defaultOutputPath
+          ? joinPath(defaultOutputPath, defaultName)
+          : defaultName;
+
+        const selected = await saveFile({
+          title: 'Save Partition Backup',
+          defaultPath,
+          defaultExtension: 'img',
         });
+        if (selected) {
+          setFilePath(selected as string);
+          setShowOverwriteConfirm(false);
+        }
       }
-    } finally {
-      setIsExecuting(false);
-    }
-  }, [partition, filePath, showOverwriteConfirm, operation, daPath, preloaderPath, onClose]);
+    }, [operation, partition, defaultOutputPath, selectFile, saveFile]);
 
-  const handleOverwrite = useCallback(() => {
-    setShowOverwriteConfirm(false);
-    handleStart(true);
-  }, [handleStart]);
+    const handleStart = useCallback(
+      async (forceOverwrite: boolean = false) => {
+        if (!partition || !filePath) return;
 
-  const handleChooseDifferent = useCallback(() => {
-    setShowOverwriteConfirm(false);
-    handleBrowse();
-  }, [handleBrowse]);
+        if (showOverwriteConfirm && !forceOverwrite) {
+          return;
+        }
 
-  if (!isOpen || !partition) return null;
+        setIsExecuting(true);
+        onClose();
 
-  const canStart = filePath && !isExecuting && !showOverwriteConfirm;
-  const getFilename = (path: string) => getBasename(path);
+        try {
+          if (operation === 'write') {
+            await executeOperation({
+              operation: 'Write partition',
+              type: 'write',
+              partitionName: partition.name,
+              partitionSize: partition.display_size,
+              successMessage: `Successfully flashed ${partition.name}`,
+              run: (operationId) =>
+                PartitionApi.write({
+                  daPath: daPath!,
+                  partition: partition.name,
+                  imagePath: filePath,
+                  preloaderPath: preloaderPath || undefined,
+                  operationId,
+                }),
+            });
+          } else {
+            await executeOperation({
+              operation: 'Read partition',
+              type: 'read',
+              partitionName: partition.name,
+              partitionSize: partition.display_size,
+              successMessage: `Successfully read ${partition.name}`,
+              run: (operationId) =>
+                PartitionApi.read({
+                  daPath: daPath!,
+                  partition: partition.name,
+                  outputPath: filePath,
+                  preloaderPath: preloaderPath || undefined,
+                  operationId,
+                }),
+            });
+          }
+        } finally {
+          setIsExecuting(false);
+        }
+      },
+      [partition, filePath, showOverwriteConfirm, operation, daPath, preloaderPath, onClose]
+    );
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center transition-opacity duration-200"
-        onClick={!isExecuting ? onClose : undefined}
-      >
-        {/* Modal */}
+    const handleOverwrite = useCallback(() => {
+      setShowOverwriteConfirm(false);
+      handleStart(true);
+    }, [handleStart]);
+
+    const handleChooseDifferent = useCallback(() => {
+      setShowOverwriteConfirm(false);
+      handleBrowse();
+    }, [handleBrowse]);
+
+    if (!isOpen || !partition) return null;
+
+    const canStart = filePath && !isExecuting && !showOverwriteConfirm;
+    const getFilename = (path: string) => getBasename(path);
+
+    return (
+      <>
         <div
-          className="bg-[var(--surface)] border border-[var(--border)] rounded-lg w-full max-w-md shadow-2xl transition-all duration-200 relative"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            animation: isOpen ? 'modalEnter 200ms ease-out' : undefined,
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 transition-opacity duration-200"
+          onClick={!isExecuting ? onClose : undefined}
         >
-          {/* Overwrite Confirmation Overlay */}
-          {showOverwriteConfirm && (
-            <div className="absolute inset-0 bg-[var(--surface)] flex flex-col items-center justify-center p-6 z-10 rounded-lg border-2 border-yellow-600">
-              <AlertTriangle className="w-12 h-12 text-yellow-500 mb-4" />
-              <h3 className="text-lg font-semibold text-[var(--text)] mb-2 text-center">
-                File Already Exists
-              </h3>
-              <p className="text-sm text-[var(--text-muted)] mb-6 text-center">
-                The output file already exists. Do you want to overwrite it?
-              </p>
-              <p className="text-xs text-[var(--text-subtle)] mb-6 text-center font-mono break-all max-w-full px-4">
-                {filePath}
-              </p>
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={handleChooseDifferent}
-                  className="flex-1 px-4 py-2 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] text-[var(--text)] rounded transition-colors"
-                >
-                  Choose Different
-                </button>
-                <button
-                  onClick={handleOverwrite}
-                  className="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded transition-colors"
-                >
-                  Overwrite
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-            <h2 className="text-lg font-semibold text-[var(--text)]">
-              {operation === 'write' ? 'Write' : 'Read'} Partition
-            </h2>
-            <button
-              onClick={onClose}
-              disabled={isExecuting}
-              className="p-1 hover:bg-[var(--surface-alt)] rounded transition-colors disabled:opacity-50"
-            >
-              <X className="w-5 h-5 text-[var(--text-muted)]" />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-6 space-y-4">
-            {/* Partition Info */}
-            <div className="p-3 bg-[var(--surface-alt)] rounded-md border border-[var(--border)]">
-              <div className="text-xs text-[var(--text-subtle)] mb-1">Partition</div>
-              <div className="font-mono text-sm text-[var(--text)]">
-                {partition.name}
-              </div>
-              {partition.display_size && (
-                <div className="text-xs text-[var(--text-muted)] mt-1">
-                  Size: {partition.display_size}
+          <Card
+            variant="elevated"
+            className="relative w-full max-w-sm overflow-hidden border-border bg-surface"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {showOverwriteConfirm && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg border-2 border-warning bg-surface p-4">
+                <AlertTriangle className="mb-4 h-12 w-12 text-warning" />
+                <h3 className="mb-2 text-center text-lg font-semibold text-foreground">
+                  File Already Exists
+                </h3>
+                <p className="mb-6 text-center text-sm text-muted-foreground">
+                  The output file already exists. Do you want to overwrite it?
+                </p>
+                <p className="mb-6 max-w-full break-all px-4 text-center font-mono text-xs text-subtle-foreground">
+                  {filePath}
+                </p>
+                <div className="flex w-full gap-3">
+                  <Button onClick={handleChooseDifferent} variant="outline" className="flex-1">
+                    Choose Different
+                  </Button>
+                  <Button onClick={handleOverwrite} variant="warning" className="flex-1">
+                    Overwrite
+                  </Button>
                 </div>
-              )}
-            </div>
-
-            {/* File Path */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text)] mb-2">
-                {operation === 'write' ? 'Image File' : 'Output File'}
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={filePath}
-                  onChange={(e) => setFilePath(e.target.value)}
-                  placeholder={operation === 'write' ? 'Select image file...' : 'Select output location...'}
-                  disabled={isExecuting}
-                  className="flex-1 px-3 py-2 bg-[var(--surface-alt)] border border-[var(--border)] rounded text-[var(--text)] text-sm placeholder-[var(--text-subtle)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50"
-                />
-                <button
-                  onClick={handleBrowse}
-                  disabled={isExecuting}
-                  className="px-3 py-2 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded transition-colors disabled:opacity-50"
-                  title="Browse"
-                >
-                  <FolderOpen className="w-4 h-4 text-[var(--text-muted)]" />
-                </button>
               </div>
-              {filePath && (
-                <div className="mt-2 text-xs text-[var(--text-subtle)] break-all">
-                  {getFilename(filePath)}
-                </div>
-              )}
-            </div>
-          </div>
+            )}
 
-          {/* Footer */}
-          <div className="flex justify-end gap-3 p-4 border-t border-[var(--border)]">
-            <button
-              onClick={onClose}
-              disabled={isExecuting}
-              className="px-4 py-2 bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] text-[var(--text)] rounded transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => handleStart()}
-              disabled={!canStart}
-              className="px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)] font-semibold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isExecuting ? 'Starting...' : 'Start'}
-            </button>
-          </div>
+            <CardHeader className="flex-row items-center justify-between gap-3">
+              <CardTitle>{operation === 'write' ? 'Write' : 'Read'} Partition</CardTitle>
+              <Button onClick={onClose} disabled={isExecuting} variant="ghost" size="icon">
+                <X className="h-5 w-5 text-muted-foreground" />
+              </Button>
+            </CardHeader>
+
+            <CardContent className="space-y-4 p-4">
+              <Card variant="subtle" className="space-y-1 border-border p-3">
+                <div className="text-xs text-subtle-foreground">Partition</div>
+                <div className="font-mono text-sm text-foreground">{partition.name}</div>
+                {partition.display_size && (
+                  <div className="text-xs text-muted-foreground">Size: {partition.display_size}</div>
+                )}
+              </Card>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground">
+                  {operation === 'write' ? 'Image File' : 'Output File'}
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      type="text"
+                      value={filePath}
+                      onChange={(e) => setFilePath(e.target.value)}
+                      placeholder={operation === 'write' ? 'Select image file...' : 'Select output location...'}
+                      disabled={isExecuting}
+                      className="rounded-md"
+                    />
+                  </div>
+                  <Button onClick={handleBrowse} disabled={isExecuting} variant="outline" size="icon" title="Browse">
+                    <FolderOpen className="h-4 w-4" />
+                  </Button>
+                </div>
+                {filePath && (
+                  <div className="mt-2 text-xs text-subtle-foreground break-all">{getFilename(filePath)}</div>
+                )}
+              </div>
+            </CardContent>
+
+            <CardFooter className="justify-end">
+              <Button onClick={onClose} disabled={isExecuting} variant="outline">
+                Cancel
+              </Button>
+              <Button onClick={() => handleStart()} disabled={!canStart}>
+                {isExecuting ? 'Starting...' : 'Start'}
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
-      </div>
-    </>
-  );
-});
+      </>
+    );
+  }
+);
 
 OperationModal.displayName = 'OperationModal';

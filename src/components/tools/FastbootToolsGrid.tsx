@@ -132,23 +132,23 @@ export function FastbootToolsGrid({
 
   return (
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-4 md:col-span-2 xl:col-span-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div className="rounded-lg border border-border bg-surface p-4 space-y-4 md:col-span-2 xl:col-span-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:flex-1 xl:justify-between">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:min-w-[22rem]" ref={deviceRef}>
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:min-w-[20rem]" ref={deviceRef}>
               <div className="relative flex-1 min-w-0">
                 <button
                   type="button"
                   onClick={() => setDeviceOpen((open) => !open)}
-                  className="w-full px-3 py-2 bg-[var(--surface-alt)] border border-[var(--border)] rounded-lg text-[var(--text)] text-sm focus:outline-none focus:border-[var(--primary)] flex items-center justify-between"
+                  className="flex w-full items-center justify-between rounded-md border border-border bg-surface-alt px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
                 >
                   {selectedDeviceLabel}
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {deviceOpen && (
-                  <div className="absolute z-50 mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-lg overflow-hidden">
+                  <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-md border border-border bg-surface shadow-lg">
                     {devices.length === 0 ? (
-                      <div className="px-4 py-2 text-xs text-[var(--text-muted)]">No devices</div>
+                      <div className="px-4 py-2 text-xs text-muted-foreground">No devices</div>
                     ) : (
                       devices.map((device) => (
                         <button
@@ -157,7 +157,7 @@ export function FastbootToolsGrid({
                             setDeviceOpen(false);
                             onSelectDevice(device.id);
                           }}
-                          className="w-full px-4 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-surface-hover transition-colors"
                         >
                           {device.product || 'Fastboot device'} ({device.serialNumber || device.id})
                         </button>
@@ -170,22 +170,22 @@ export function FastbootToolsGrid({
                 <button
                   onClick={onRefresh}
                   disabled={isRefreshing}
-                  className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] text-sm text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-50"
+                  className="rounded-md border border-border bg-surface-alt px-3 py-2 text-sm text-foreground transition-colors hover:bg-surface-hover disabled:opacity-50"
                 >
                   {isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </button>
                 <button
                   onClick={onGetvarAll}
                   disabled={!isDeviceSelected || isGetvarRunning}
-                  className="px-3 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-sm font-semibold hover:bg-[var(--primary-hover)] disabled:opacity-50"
+                  className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
                 >
                   {isGetvarRunning ? 'Fetching...' : 'Getvar All'}
                 </button>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-alt)] px-3 py-1 text-xs text-[var(--text-muted)]">
-                <span className={`h-2 w-2 rounded-full ${hasDevices ? 'bg-emerald-400' : 'bg-[var(--border)]'}`} />
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs text-muted-foreground">
+                <span className={`h-2 w-2 rounded-full ${hasDevices ? 'bg-emerald-400' : 'bg-border'}`} />
                 {hasDevices ? (isDeviceSelected ? 'Device selected' : 'Select a device') : 'No device'}
               </div>
               <div className="relative" ref={rebootRef}>
@@ -193,13 +193,13 @@ export function FastbootToolsGrid({
                   type="button"
                   onClick={() => setRebootOpen((open) => !open)}
                   disabled={!isDeviceSelected || isRebootRunning}
-                  className="px-3 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-sm font-semibold hover:bg-[var(--primary-hover)] disabled:opacity-50 flex items-center justify-between min-w-[8rem]"
+                  className="flex min-w-[8rem] items-center justify-between rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
                 >
                   Reboot
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {rebootOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden z-50">
+                  <div className="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-md border border-border bg-surface shadow-lg">
                     {rebootOptions.map((option) => (
                       <button
                         key={option.value}
@@ -207,8 +207,8 @@ export function FastbootToolsGrid({
                           setRebootOpen(false);
                           onRebootSelect(option.value);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors ${
-                          option.value === rebootMode ? 'bg-[var(--surface-hover)] font-semibold' : ''
+                        className={`w-full px-4 py-2 text-left text-sm text-foreground hover:bg-surface-hover transition-colors ${
+                          option.value === rebootMode ? 'bg-surface-hover font-semibold' : ''
                         }`}
                       >
                         {option.label}
@@ -221,84 +221,84 @@ export function FastbootToolsGrid({
           </div>
         </div>
         {!hasDevices && (
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] px-3 py-2 text-xs text-[var(--text-muted)]">
+          <div className="rounded-lg border border-border bg-surface-alt px-3 py-2 text-xs text-muted-foreground">
             No fastboot devices detected.
           </div>
         )}
       </div>
 
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4 md:col-span-2 xl:col-span-3">
+      <div className="rounded-lg border border-border bg-surface p-4 space-y-4 md:col-span-2 xl:col-span-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-subtle)]">Summary</p>
-          <h3 className="text-base font-semibold text-[var(--text)]">Device Info</h3>
+          <p className="text-xs uppercase tracking-[0.2em] text-subtle-foreground">Summary</p>
+          <h3 className="text-base font-semibold text-foreground">Device Info</h3>
         </div>
         {hasDeviceInfo ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {deviceInfoFields.map((field) => (
-              <div key={field.label} className="rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] p-3">
-                <div className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">
+              <div key={field.label} className="rounded-md border border-border bg-surface-alt p-3">
+                <div className="text-xs uppercase tracking-wide text-subtle-foreground">
                   {field.label}
                 </div>
-                <div className="mt-1 text-sm text-[var(--text)]">{field.value}</div>
+                <div className="mt-1 text-sm text-foreground">{field.value}</div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-[var(--text-muted)]">Run Getvar All to populate info.</p>
+          <p className="text-xs text-muted-foreground">Run Getvar All to populate info.</p>
         )}
         {rawDeviceInfoLines.length > 0 && (
-          <details className="rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] p-3">
-            <summary className="cursor-pointer text-xs font-semibold text-[var(--text)]">
+          <details className="rounded-md border border-border bg-surface-alt p-3">
+            <summary className="cursor-pointer text-xs font-semibold text-foreground">
               Raw getvar output
             </summary>
-            <pre className="mt-2 max-h-32 overflow-auto text-xs text-[var(--text-muted)]">
+            <pre className="mt-2 max-h-32 overflow-auto text-xs text-muted-foreground">
               {rawDeviceInfoLines.join('\n')}
             </pre>
           </details>
         )}
       </div>
 
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4 md:col-span-2 xl:col-span-1">
+      <div className="rounded-lg border border-border bg-surface p-4 space-y-4 md:col-span-2 xl:col-span-1">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-subtle)]">Getvar</p>
-          <h3 className="text-base font-semibold text-[var(--text)]">Quick Query</h3>
+          <p className="text-xs uppercase tracking-[0.2em] text-subtle-foreground">Getvar</p>
+          <h3 className="text-base font-semibold text-foreground">Quick Query</h3>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center min-w-0">
           <input
             value={getvarName}
             onChange={(event) => onGetvarNameChange(event.target.value)}
             placeholder="current-slot"
-            className="flex-1 min-w-0 px-3 py-2 bg-[var(--surface-alt)] border border-[var(--border)] rounded-lg text-[var(--text)] text-sm focus:outline-none focus:border-[var(--primary)]"
+            className="flex-1 min-w-0 rounded-md border border-border bg-surface-alt px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
           <button
             onClick={onGetvarSingle}
             disabled={!isDeviceSelected || !getvarName.trim() || isGetvarSingleRunning}
-            className="px-3 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-foreground)] text-sm font-semibold hover:bg-[var(--accent-hover)] disabled:opacity-50 shrink-0"
+            className="shrink-0 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
             {isGetvarSingleRunning ? 'Fetching...' : 'Getvar'}
           </button>
         </div>
         {getvarValue && (
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] p-3 text-sm text-[var(--text)]">
+          <div className="rounded-md border border-border bg-surface-alt p-3 text-sm text-foreground">
             {getvarValue}
           </div>
         )}
       </div>
 
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4 md:col-span-2 xl:col-span-3">
+      <div className="rounded-lg border border-border bg-surface p-4 space-y-4 md:col-span-2 xl:col-span-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-subtle)]">Flash</p>
-          <h3 className="text-base font-semibold text-[var(--text)]">Image Operations</h3>
+          <p className="text-xs uppercase tracking-[0.2em] text-subtle-foreground">Flash</p>
+          <h3 className="text-base font-semibold text-foreground">Image Operations</h3>
         </div>
         <div className="flex flex-wrap gap-2 min-w-0">
           <button
             onClick={onSelectFlashImage}
             disabled={isFlashRunning}
-            className="px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-50"
+            className="rounded-md border border-border px-3 py-2 text-sm text-foreground transition-colors hover:bg-surface-hover disabled:opacity-50"
           >
             {flashImagePath ? 'Change Image' : 'Select Image'}
           </button>
-          <span className="text-xs text-[var(--text-muted)] truncate min-w-0 flex-1">
+          <span className="text-xs text-muted-foreground truncate min-w-0 flex-1">
             {flashImagePath || 'No image selected'}
           </span>
         </div>
@@ -307,12 +307,12 @@ export function FastbootToolsGrid({
             value={flashPartition}
             onChange={(event) => onFlashPartitionChange(event.target.value)}
             placeholder="boot"
-            className="flex-1 px-3 py-2 bg-[var(--surface-alt)] border border-[var(--border)] rounded-lg text-[var(--text)] text-sm focus:outline-none focus:border-[var(--primary)]"
+            className="flex-1 rounded-md border border-border bg-surface-alt px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
           <button
             onClick={onFlash}
             disabled={!isDeviceSelected || !flashPartition || !flashImagePath || isFlashRunning}
-            className="px-3 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-foreground)] text-sm font-semibold hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
             {isFlashRunning ? 'Flashing...' : 'Flash'}
           </button>
@@ -322,37 +322,37 @@ export function FastbootToolsGrid({
             value={erasePartition}
             onChange={(event) => onErasePartitionChange(event.target.value)}
             placeholder="userdata"
-            className="flex-1 px-3 py-2 bg-[var(--surface-alt)] border border-[var(--border)] rounded-lg text-[var(--text)] text-sm focus:outline-none focus:border-[var(--primary)]"
+            className="flex-1 rounded-md border border-border bg-surface-alt px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
           <button
             onClick={onErase}
             disabled={!isDeviceSelected || !erasePartition || isEraseRunning}
-            className="px-3 py-2 rounded-lg bg-[var(--danger)] text-[var(--danger-foreground)] text-sm font-semibold hover:bg-[var(--danger-hover)] disabled:opacity-50"
+            className="rounded-md bg-danger px-3 py-2 text-sm font-semibold text-danger-foreground transition-colors hover:bg-danger-hover disabled:opacity-50"
           >
             {isEraseRunning ? 'Erasing...' : 'Erase'}
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4 md:col-span-2 xl:col-span-1">
+      <div className="rounded-lg border border-border bg-surface p-4 space-y-4 md:col-span-2 xl:col-span-1">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-subtle)]">Slots</p>
-          <h3 className="text-base font-semibold text-[var(--text)]">Slot Management</h3>
+          <p className="text-xs uppercase tracking-[0.2em] text-subtle-foreground">Slots</p>
+          <h3 className="text-base font-semibold text-foreground">Slot Management</h3>
         </div>
-        <p className="text-xs text-[var(--text-muted)]">Current slot: {currentSlot ?? '—'}</p>
+        <p className="text-xs text-muted-foreground">Current slot: {currentSlot ?? '—'}</p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1" ref={slotRef}>
             <button
               type="button"
               onClick={() => setSlotOpen((open) => !open)}
               disabled={slotActionsDisabled}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-alt)] border border-[var(--border)] text-sm text-[var(--text)] flex items-center justify-between disabled:opacity-50"
+              className="flex w-full items-center justify-between rounded-md border border-border bg-surface-alt px-3 py-2 text-sm text-foreground disabled:opacity-50"
             >
               {slotOptions.find((option) => option.value === slotSelection)?.label}
               <ChevronDown className="w-4 h-4" />
             </button>
             {slotOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-md border border-border bg-surface shadow-lg">
                 {slotOptions.map((option) => (
                   <button
                     key={option.value}
@@ -360,7 +360,7 @@ export function FastbootToolsGrid({
                       setSlotOpen(false);
                       onSlotSelectionChange(option.value);
                     }}
-                    className="w-full px-4 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-surface-hover transition-colors"
                   >
                     {option.label}
                   </button>
@@ -371,13 +371,13 @@ export function FastbootToolsGrid({
           <button
             onClick={onSetActiveSlot}
             disabled={slotActionsDisabled}
-            className="px-3 py-2 rounded-lg bg-[var(--surface-alt)] border border-[var(--border)] text-sm text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-50"
+            className="rounded-md border border-border bg-surface-alt px-3 py-2 text-sm text-foreground transition-colors hover:bg-surface-hover disabled:opacity-50"
           >
             Apply
           </button>
         </div>
         {!hasSlotSupport && (
-          <p className="text-xs text-[var(--text-muted)]">Slots are not supported on this device.</p>
+          <p className="text-xs text-muted-foreground">Slots are not supported on this device.</p>
         )}
       </div>
 

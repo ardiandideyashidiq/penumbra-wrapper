@@ -5,6 +5,9 @@ import { useUIStore } from '../store/uiStore';
 import { useOperationStore } from '../store/operationStore';
 import { ProgressWidget } from './ProgressWidget';
 import { ErrorHandler } from '../services/utils/errorHandler';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { cn } from '../lib/utils';
 
 export function LogPanel() {
   const { isLogPanelOpen, closeLogPanel, logPanelWidth, setLogPanelWidth } = useUIStore();
@@ -116,17 +119,17 @@ export function LogPanel() {
   if (!isLogPanelOpen) return null;
 
   const getLevelColor = (level: string) => {
-    if (!level) return 'text-[var(--text-muted)]';
+    if (!level) return 'text-muted-foreground';
     
     switch (level.toLowerCase()) {
       case 'error':
-        return 'text-[var(--danger)]';
+        return 'text-danger';
       case 'warning':
-        return 'text-[var(--warning)]';
+        return 'text-warning';
       case 'success':
-        return 'text-[var(--success)]';
+        return 'text-success';
       default:
-        return 'text-[var(--text-muted)]';
+        return 'text-muted-foreground';
     }
   };
 
@@ -134,55 +137,57 @@ export function LogPanel() {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-200"
+        className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200"
         onClick={closeLogPanel}
       />
 
       {/* Slide-out panel */}
       <div
         ref={panelRef}
-        className={`fixed top-0 right-0 h-full bg-[var(--surface)] border-l border-[var(--border)] z-50 flex flex-col shadow-2xl ${isDragging ? '' : 'transition-all duration-300 ease-out'}`}
+        className={cn(
+          'fixed right-0 top-0 z-50 flex h-full flex-col border-l border-border bg-surface shadow-2xl',
+          isDragging ? '' : 'transition-all duration-300 ease-out'
+        )}
         style={{ width: `${logPanelWidth}px` }}
       >
         {/* Resize Handle - Small centered grip */}
         <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-16 w-3 cursor-col-resize bg-[var(--primary-soft)] hover:bg-[var(--primary)] rounded-r-md transition-colors flex items-center justify-center"
+          className="absolute left-0 top-1/2 flex h-16 w-3 -translate-y-1/2 cursor-col-resize items-center justify-center rounded-r-md bg-primary-soft transition-colors hover:bg-primary"
           onMouseDown={() => setIsDragging(true)}
           title="Drag to resize"
         >
-          {/* Grip indicator */}
-          <div className="w-0.5 h-8 bg-[var(--primary-foreground)]/60 rounded-full" />
+          <div className="h-8 w-0.5 rounded-full bg-primary-foreground/60" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)] ml-2">
+        <div className="ml-2 flex items-center justify-between border-b border-border p-3">
           <div className="flex items-center gap-2">
-            <Terminal className="w-5 h-5 text-[var(--primary)]" />
-            <h2 className="text-lg font-semibold text-[var(--text)]">
-              Operation Logs
-            </h2>
+            <Terminal className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Operation Logs</h2>
             {isStreaming && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[var(--success-soft)] rounded-full border border-[var(--success)]">
-                <div className="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse" />
-                <span className="text-xs text-[var(--success)] font-medium">Live</span>
-              </div>
+            <Badge variant="success" className="gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-current animate-pulse" />
+                Live
+              </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
+          <div className="flex items-center gap-1.5">
+            <Button
               onClick={handleCopyLogs}
               disabled={logs.length === 0}
-              className="p-1 hover:bg-[var(--surface-alt)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="ghost"
+              size="icon"
               title="Copy logs"
             >
-              <Copy className="w-5 h-5 text-[var(--text-muted)]" />
-            </button>
-            <button
+              <Copy className="h-5 w-5 text-muted-foreground" />
+            </Button>
+            <Button
               onClick={closeLogPanel}
-              className="p-1 hover:bg-[var(--surface-alt)] rounded transition-colors"
+              variant="ghost"
+              size="icon"
             >
-              <X className="w-5 h-5 text-[var(--text-muted)]" />
-            </button>
+              <X className="h-5 w-5 text-muted-foreground" />
+            </Button>
           </div>
         </div>
 
@@ -196,21 +201,21 @@ export function LogPanel() {
         />
 
         {/* Logs */}
-        <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1 ml-2">
+        <div className="ml-2 flex-1 space-y-1 overflow-y-auto p-3 font-mono text-xs">
           {logs.length === 0 ? (
-            <div className="text-center text-[var(--text-subtle)] mt-8">
+            <div className="mt-8 text-center text-subtle-foreground">
               No logs yet
             </div>
           ) : (
             logs.map((log) => (
               <div key={log.id || log.timestamp} className="flex gap-2">
-                <span className="text-[var(--text-subtle)] shrink-0">
+                <span className="shrink-0 text-subtle-foreground">
                   {new Date(log.timestamp).toLocaleTimeString()}
                 </span>
                 <span className={getLevelColor(log.level)}>
                   [{log.level.toUpperCase()}]
                 </span>
-                <span className="text-[var(--text)] break-all">{log.message}</span>
+                <span className="break-all text-foreground">{log.message}</span>
               </div>
             ))
           )}

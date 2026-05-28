@@ -1,4 +1,7 @@
 import type { FastbootDevice, FastbootRebootMode, FastbootSlot } from '../../types';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Card } from '../ui/card';
 
 interface FastbootInfoField {
   label: string;
@@ -89,29 +92,29 @@ export function FastbootToolsSection({
   const eraseDisabled = !selectedDeviceId || !erasePartition || isEraseRunning;
 
   return (
-    <section className="bg-[var(--surface-alt)] border border-[var(--border)] rounded-lg p-6 space-y-5">
+    <Card className="space-y-4 border-border bg-surface-alt p-4">
       <div>
-        <h2 className="text-lg font-semibold text-[var(--text)]">Fastboot Tools</h2>
-        <p className="text-sm text-[var(--text-muted)] mt-1">
+        <h2 className="text-lg font-semibold text-foreground">Fastboot Tools</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           Use these tools only after the device is already in Fastboot mode.
         </p>
       </div>
 
       {!hasDevices && (
-        <div className="rounded border border-[var(--border)] bg-[var(--surface)] p-3 text-sm text-[var(--text-muted)]">
+        <div className="rounded-lg border border-border bg-surface p-3 text-sm text-muted-foreground">
           No fastboot devices detected. Put the device in fastboot mode and click refresh.
         </div>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[240px]">
-          <label className="block text-xs uppercase tracking-wide text-[var(--text-subtle)] mb-2">
+        <div className="min-w-[220px] flex-1">
+          <label className="mb-2 block text-xs uppercase tracking-wide text-subtle-foreground">
             Fastboot Device
           </label>
           <select
             value={selectedDeviceId}
             onChange={(event) => onSelectDevice(event.target.value)}
-            className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] text-sm focus:outline-none focus:border-[var(--primary)]"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           >
             <option value="">Select a device</option>
             {devices.map((device) => (
@@ -121,224 +124,171 @@ export function FastbootToolsSection({
             ))}
           </select>
         </div>
-        <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className="px-4 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded text-sm text-[var(--text)] transition-colors disabled:opacity-50"
-        >
+        <Button onClick={onRefresh} disabled={isRefreshing} variant="outline">
           {isRefreshing ? 'Refreshing...' : 'Refresh Devices'}
-        </button>
+        </Button>
       </div>
 
-      <div className="border-t border-[var(--border)] pt-4 space-y-4">
+      <div className="space-y-4 border-t border-border pt-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-[var(--text)]">Device Info</h3>
-            <p className="text-xs text-[var(--text-muted)]">Parsed from getvar all output.</p>
+            <h3 className="text-sm font-semibold text-foreground">Device Info</h3>
+            <p className="text-xs text-muted-foreground">Parsed from getvar all output.</p>
           </div>
-          <button
-            onClick={onGetvarAll}
-            disabled={!selectedDeviceId || isGetvarRunning}
-            className="px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)] rounded text-sm font-medium transition-colors disabled:opacity-50"
-          >
+          <Button onClick={onGetvarAll} disabled={!selectedDeviceId || isGetvarRunning}>
             {isGetvarRunning ? 'Fetching variables...' : 'Refresh Info'}
-          </button>
+          </Button>
         </div>
 
         {hasDeviceInfo ? (
           <div className="grid gap-3 md:grid-cols-2">
             {deviceInfoFields.map((field) => (
-              <div key={field.label} className="rounded border border-[var(--border)] bg-[var(--surface)] p-3">
-                <div className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">
-                  {field.label}
-                </div>
-                <div className="mt-1 text-sm text-[var(--text)]">{field.value}</div>
-              </div>
+              <Card key={field.label} className="space-y-1 border-border bg-surface p-3">
+                <div className="text-xs uppercase tracking-wide text-subtle-foreground">{field.label}</div>
+                <div className="mt-1 text-sm text-foreground">{field.value}</div>
+              </Card>
             ))}
           </div>
         ) : (
-          <div className="text-sm text-[var(--text-muted)]">
+          <div className="text-sm text-muted-foreground">
             Run getvar all to populate device information.
           </div>
         )}
 
         {rawDeviceInfoLines.length > 0 && (
-          <details className="rounded border border-[var(--border)] bg-[var(--surface)] p-3">
-            <summary className="cursor-pointer text-sm font-medium text-[var(--text)]">
-              Raw getvar output
-            </summary>
-            <pre className="mt-2 max-h-48 overflow-auto text-xs text-[var(--text-muted)]">
+          <Card className="space-y-2 border-border bg-surface p-3">
+            <div className="text-sm font-medium text-foreground">Raw getvar output</div>
+            <pre className="max-h-48 overflow-auto text-xs text-muted-foreground">
               {rawDeviceInfoLines.join('\n')}
             </pre>
-          </details>
+          </Card>
         )}
       </div>
 
-      <div className="border-t border-[var(--border)] pt-4 space-y-3">
+      <div className="space-y-3 border-t border-border pt-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-[var(--text)]">Quick Getvar</h3>
-            <p className="text-xs text-[var(--text-muted)]">Query a single fastboot variable.</p>
+            <h3 className="text-sm font-semibold text-foreground">Quick Getvar</h3>
+            <p className="text-xs text-muted-foreground">Query a single fastboot variable.</p>
           </div>
-          <button
-            onClick={onGetvarSingle}
-            disabled={getvarSingleDisabled || !getvarName.trim()}
-            className="px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)] rounded text-sm font-medium transition-colors disabled:opacity-50"
-          >
+          <Button onClick={onGetvarSingle} disabled={getvarSingleDisabled || !getvarName.trim()}>
             {isGetvarSingleRunning ? 'Fetching variable...' : 'Getvar'}
-          </button>
+          </Button>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex-1 min-w-[220px]">
-            <label className="block text-xs uppercase tracking-wide text-[var(--text-subtle)] mb-2">
+          <div className="min-w-[220px] flex-1">
+            <label className="mb-2 block text-xs uppercase tracking-wide text-subtle-foreground">
               Variable Name
             </label>
-            <input
+            <Input
               value={getvarName}
               onChange={(event) => onGetvarNameChange(event.target.value)}
               placeholder="e.g. current-slot"
-              className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] text-sm focus:outline-none focus:border-[var(--primary)]"
             />
           </div>
           {getvarValue && (
-            <div className="min-w-[220px] rounded border border-[var(--border)] bg-[var(--surface)] p-3">
-              <div className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Value</div>
-              <div className="mt-1 text-sm text-[var(--text)]">{getvarValue}</div>
-            </div>
+            <Card className="min-w-[220px] space-y-1 border-border bg-surface p-3">
+              <div className="text-xs uppercase tracking-wide text-subtle-foreground">Value</div>
+              <div className="mt-1 text-sm text-foreground">{getvarValue}</div>
+            </Card>
           )}
         </div>
       </div>
 
-
-      <div className="border-t border-[var(--border)] pt-4 space-y-3">
+      <div className="space-y-3 border-t border-border pt-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex-1 min-w-[220px]">
-            <label className="block text-xs uppercase tracking-wide text-[var(--text-subtle)] mb-2">
+          <div className="min-w-[220px] flex-1">
+            <label className="mb-2 block text-xs uppercase tracking-wide text-subtle-foreground">
               Partition
             </label>
-            <input
+            <Input
               value={flashPartition}
               onChange={(event) => onFlashPartitionChange(event.target.value)}
               placeholder="e.g. boot, recovery"
-              className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] text-sm focus:outline-none focus:border-[var(--primary)]"
             />
           </div>
-          <div className="flex-1 min-w-[240px]">
-            <label className="block text-xs uppercase tracking-wide text-[var(--text-subtle)] mb-2">
+          <div className="min-w-[220px] flex-1">
+            <label className="mb-2 block text-xs uppercase tracking-wide text-subtle-foreground">
               Image
             </label>
             <div className="flex gap-2">
-              <input
-                value={flashImagePath ?? ''}
-                readOnly
-                placeholder="Select image file"
-                className="flex-1 px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] text-sm focus:outline-none"
-              />
-              <button
-                onClick={onSelectFlashImage}
-                className="px-3 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded text-sm text-[var(--text)] transition-colors"
-              >
-                Browse
-              </button>
+            <Input
+              value={flashImagePath ?? ''}
+              readOnly
+              placeholder="Select image file"
+              wrapperClassName="flex-1"
+            />
+            <Button onClick={onSelectFlashImage} variant="outline">
+              Browse
+            </Button>
             </div>
           </div>
-          <button
+          <Button
             onClick={onFlash}
             disabled={!selectedDeviceId || !flashPartition || !flashImagePath || isFlashRunning}
-            className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded text-sm font-medium transition-colors disabled:opacity-50"
+            variant="secondary"
           >
             {isFlashRunning ? 'Flashing...' : 'Flash'}
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="border-t border-[var(--border)] pt-4 space-y-3">
+      <div className="space-y-3 border-t border-border pt-4">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--text)]">Erase Partition</h3>
-          <p className="text-xs text-[var(--text-muted)]">
+          <h3 className="text-sm font-semibold text-foreground">Erase Partition</h3>
+          <p className="text-xs text-muted-foreground">
             This will permanently erase the selected partition.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex-1 min-w-[220px]">
-            <label className="block text-xs uppercase tracking-wide text-[var(--text-subtle)] mb-2">
+          <div className="min-w-[220px] flex-1">
+            <label className="mb-2 block text-xs uppercase tracking-wide text-subtle-foreground">
               Partition
             </label>
-            <input
+            <Input
               value={erasePartition}
               onChange={(event) => onErasePartitionChange(event.target.value)}
               placeholder="e.g. userdata"
-              className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-[var(--text)] text-sm focus:outline-none focus:border-[var(--primary)]"
             />
           </div>
-          <button
-            onClick={onErase}
-            disabled={eraseDisabled}
-            className="px-4 py-2 bg-[var(--danger)] hover:bg-[var(--danger-hover)] text-[var(--danger-foreground)] rounded text-sm font-medium transition-colors disabled:opacity-50"
-          >
+          <Button onClick={onErase} disabled={eraseDisabled} variant="destructive">
             {isEraseRunning ? 'Erasing...' : 'Erase'}
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="border-t border-[var(--border)] pt-4 space-y-3">
+      <div className="space-y-3 border-t border-border pt-4">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--text)]">Slot Management</h3>
-          <p className="text-xs text-[var(--text-muted)]">
-            {slotSupportMessage}
-          </p>
+          <h3 className="text-sm font-semibold text-foreground">Slot Management</h3>
+          <p className="text-xs text-muted-foreground">{slotSupportMessage}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="text-sm text-[var(--text)]">
+          <div className="text-sm text-foreground">
             Current slot: <span className="font-semibold">{currentSlot ?? '—'}</span>
           </div>
-          <button
-            onClick={() => onSetActiveSlot('a')}
-            disabled={slotActionsDisabled}
-            className="px-4 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded text-sm text-[var(--text)] transition-colors disabled:opacity-50"
-          >
+          <Button onClick={() => onSetActiveSlot('a')} disabled={slotActionsDisabled} variant="outline">
             Set Slot A
-          </button>
-          <button
-            onClick={() => onSetActiveSlot('b')}
-            disabled={slotActionsDisabled}
-            className="px-4 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded text-sm text-[var(--text)] transition-colors disabled:opacity-50"
-          >
+          </Button>
+          <Button onClick={() => onSetActiveSlot('b')} disabled={slotActionsDisabled} variant="outline">
             Set Slot B
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="border-t border-[var(--border)] pt-4 flex flex-wrap items-center gap-3">
-        <button
-          onClick={() => onReboot('normal')}
-          disabled={rebootDisabled}
-          className="px-4 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded text-sm text-[var(--text)] transition-colors disabled:opacity-50"
-        >
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+        <Button onClick={() => onReboot('normal')} disabled={rebootDisabled} variant="outline">
           Reboot
-        </button>
-        <button
-          onClick={() => onReboot('bootloader')}
-          disabled={rebootDisabled}
-          className="px-4 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded text-sm text-[var(--text)] transition-colors disabled:opacity-50"
-        >
+        </Button>
+        <Button onClick={() => onReboot('bootloader')} disabled={rebootDisabled} variant="outline">
           Reboot Bootloader
-        </button>
-        <button
-          onClick={() => onReboot('recovery')}
-          disabled={rebootDisabled}
-          className="px-4 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded text-sm text-[var(--text)] transition-colors disabled:opacity-50"
-        >
+        </Button>
+        <Button onClick={() => onReboot('recovery')} disabled={rebootDisabled} variant="outline">
           Reboot Recovery
-        </button>
-        <button
-          onClick={onRebootFastbootd}
-          disabled={rebootDisabled}
-          className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded text-sm font-medium transition-colors disabled:opacity-50"
-        >
+        </Button>
+        <Button onClick={onRebootFastbootd} disabled={rebootDisabled} variant="secondary">
           Reboot Fastbootd
-        </button>
+        </Button>
       </div>
-    </section>
+    </Card>
   );
 }

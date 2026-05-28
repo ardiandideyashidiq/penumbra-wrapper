@@ -46,10 +46,10 @@ export function Flasher() {
   const flashingCancelled = useRef(false);
 
   const selectedFlashOrder = useMemo(
-    () => downloadPartitions
+    () => (scatterFile?.partitions ?? [])
       .filter((partition) => selectedPartitions.has(partition.partition_name))
       .map((partition) => partition.partition_name),
-    [downloadPartitions, selectedPartitions]
+    [scatterFile, selectedPartitions]
   );
 
   const currentFlashingPartition = useMemo(
@@ -239,7 +239,7 @@ export function Flasher() {
   const canFlash = selectedCount > 0 && missingImagesCount === 0 && isConnected && !!daPath;
 
   return (
-    <div className="h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col">
+    <div className="h-screen bg-background text-foreground flex flex-col">
       <FlashProgressModal
         isOpen={showFlashModal && !flashModalMinimized}
         onClose={handleFlashModalClose}
@@ -258,14 +258,14 @@ export function Flasher() {
         onSelectScatter={handleSelectScatter}
       />
 
-      <main className="flex-1 p-6 flex flex-col overflow-hidden">
+      <main className="flex flex-1 flex-col overflow-hidden p-4">
         {!scatterFile ? (
           <div className="flex flex-col items-center justify-center flex-1 text-center">
-            <Package className="w-20 h-20 text-[var(--text-subtle)] mb-4" />
-            <h2 className="text-xl font-semibold text-[var(--text)] mb-2">
+            <Package className="w-20 h-20 text-subtle-foreground mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">
               No Scatter File Loaded
             </h2>
-            <p className="text-sm text-[var(--text-subtle)]">
+            <p className="text-sm text-subtle-foreground">
               Load a scatter file (.txt or .xml) to begin batch flashing
             </p>
           </div>

@@ -19,35 +19,35 @@ export function AntumbraUpdatesSection({
   onUpdateAntumbra,
 }: AntumbraUpdatesSectionProps) {
   return (
-    <section className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-6">
-      <div className="flex items-start gap-4 mb-4">
-        <div className="p-3 bg-emerald-600/20 rounded-lg">
+    <section className="rounded-lg border border-border bg-surface-alt p-4">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="rounded-lg bg-success-soft p-3">
           <Download className="w-6 h-6 text-emerald-400" />
         </div>
         <div className="flex-1">
-          <h2 className="text-lg font-semibold text-zinc-200">Antumbra Updates</h2>
-          <p className="text-sm text-zinc-400 mt-1">
+          <h2 className="text-lg font-semibold text-foreground">Antumbra Updates</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             Check for updates and install the latest antumbra release.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div className="bg-zinc-900/50 border border-zinc-700 rounded-lg p-4">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Installed</p>
-          <p className="mt-2 text-sm font-mono text-zinc-200">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-lg border border-border bg-surface p-3">
+          <p className="text-xs uppercase tracking-wide text-subtle-foreground">Installed</p>
+          <p className="mt-2 text-sm font-mono text-foreground">
             {updateInfo?.installed_version || 'Unknown'}
           </p>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-700 rounded-lg p-4">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Latest</p>
-          <p className="mt-2 text-sm font-mono text-zinc-200">
+        <div className="rounded-lg border border-border bg-surface p-3">
+          <p className="text-xs uppercase tracking-wide text-subtle-foreground">Latest</p>
+          <p className="mt-2 text-sm font-mono text-foreground">
             {updateInfo?.latest_version || 'Unknown'}
           </p>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-700 rounded-lg p-4">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Status</p>
-          <p className="mt-2 text-sm font-semibold text-zinc-200">
+        <div className="rounded-lg border border-border bg-surface p-3">
+          <p className="text-xs uppercase tracking-wide text-subtle-foreground">Status</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">
             {updateInfo?.supported === false
               ? 'Unsupported'
               : updateInfo?.update_available
@@ -55,23 +55,23 @@ export function AntumbraUpdatesSection({
                 : 'Up to date'}
           </p>
           {updateInfo?.message && (
-            <p className="text-xs text-zinc-500 mt-1">{updateInfo.message}</p>
+            <p className="mt-1 text-xs text-subtle-foreground">{updateInfo.message}</p>
           )}
         </div>
       </div>
 
       {updatablePath && (
-        <div className="bg-zinc-900/50 border border-zinc-700 rounded-lg p-3 mb-4">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Update path</p>
-          <p className="mt-2 text-xs font-mono text-zinc-300 break-all">{updatablePath}</p>
+        <div className="mb-4 rounded-lg border border-border bg-surface p-3">
+          <p className="text-xs uppercase tracking-wide text-subtle-foreground">Update path</p>
+          <p className="mt-2 break-all text-xs font-mono text-foreground">{updatablePath}</p>
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row gap-3">
+      <div className="flex flex-col gap-3 md:flex-row">
         <button
           onClick={onCheckUpdates}
           disabled={isCheckingUpdate}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-2 text-sm text-foreground transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshCw className="w-4 h-4" />
           {isCheckingUpdate ? 'Checking...' : 'Check for updates'}
@@ -84,7 +84,7 @@ export function AntumbraUpdatesSection({
             !updateInfo?.supported ||
             !updateInfo?.update_available
           }
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-2 rounded-md bg-success px-4 py-2 text-sm text-success-foreground transition-colors hover:bg-success-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
           {isUpdatingAntumbra ? 'Updating...' : 'Update Antumbra'}

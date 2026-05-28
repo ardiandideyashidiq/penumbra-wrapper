@@ -2,11 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
+import { applyTheme, getInitialTheme } from './lib/theme';
 
-const storedTheme = localStorage.getItem('uiTheme');
-const initialTheme = storedTheme === 'light' ? 'light' : 'dark';
-document.documentElement.dataset.theme = initialTheme;
-document.documentElement.style.colorScheme = initialTheme;
+const initialTheme = getInitialTheme();
+applyTheme(initialTheme);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

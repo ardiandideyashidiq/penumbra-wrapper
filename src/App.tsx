@@ -72,12 +72,12 @@ function AppContent() {
   return (
     <BrowserRouter>
         {isSettingsLoading && (
-          <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-3 py-1.5 text-xs font-medium bg-[var(--surface-alt)] text-[var(--text)] border border-[var(--border)] rounded-full shadow">
+          <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-3 py-1.5 text-xs font-medium bg-surface-alt text-foreground border border-border rounded-full shadow">
             Loading settings...
           </div>
         )}
         {settingsError && (
-          <div className="fixed top-3 right-3 z-[200] px-3 py-1.5 text-xs font-medium bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger)] rounded shadow">
+          <div className="fixed top-3 right-3 z-[200] px-3 py-1.5 text-xs font-medium bg-danger-soft text-danger border border-danger rounded shadow">
             Settings load failed: {settingsError}
           </div>
         )}

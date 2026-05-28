@@ -27,35 +27,35 @@ export function ReadAllSection({
   onReadAll,
 }: ReadAllSectionProps) {
   return (
-    <section className="bg-[var(--surface-alt)] border border-[var(--border)] rounded-lg p-6">
-      <div className="flex items-start gap-4 mb-4">
-        <div className="p-3 bg-[var(--primary-soft)] rounded-lg">
-          <HardDrive className="w-6 h-6 text-[var(--primary)]" />
+    <section className="rounded-lg border border-border bg-surface-alt p-4">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="rounded-lg bg-primary-soft p-3">
+          <HardDrive className="w-6 h-6 text-primary" />
         </div>
         <div className="flex-1">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Backup All Partitions</h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
+          <h2 className="text-lg font-semibold text-foreground">Backup All Partitions</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Create a complete backup of all device partitions to a directory. You can select which partitions to skip.
           </p>
         </div>
       </div>
 
       {isConnected && partitions.length > 0 && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 mb-4">
+        <div className="mb-4 rounded-lg border border-border bg-surface p-3">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[var(--text)]">
+            <h3 className="text-sm font-semibold text-foreground">
               Select Partitions to Skip ({skipPartitions.size} skipped, {backupCount} will be backed up)
             </h3>
             <div className="flex gap-2">
               <button
                 onClick={onSelectAllSkip}
-                className="px-3 py-1 text-xs bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] rounded transition-colors"
+              className="rounded px-3 py-1 text-xs transition-colors hover:bg-surface-hover"
               >
                 Skip All
               </button>
               <button
                 onClick={onClearAllSkip}
-                className="px-3 py-1 text-xs bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] rounded transition-colors"
+              className="rounded px-3 py-1 text-xs transition-colors hover:bg-surface-hover"
               >
                 Clear
               </button>
@@ -69,14 +69,14 @@ export function ReadAllSection({
                 <button
                   key={partition.name}
                   onClick={() => onToggleSkip(partition.name)}
-                  className={`px-3 py-2 text-sm rounded transition-colors text-left ${
+                  className={`rounded px-3 py-2 text-left text-sm transition-colors ${
                     isSkipped
-                      ? 'bg-[var(--danger-soft)] border border-[var(--danger)] text-[var(--danger)]'
-                      : 'bg-[var(--success-soft)] border border-[var(--success)] text-[var(--success)]'
+                      ? 'bg-danger-soft border border-danger text-danger'
+                      : 'bg-success-soft border border-success text-success'
                   }`}
                 >
                   <span className="font-mono">{partition.name}</span>
-                  <span className="text-xs block text-[var(--text-subtle)] mt-0.5">
+                  <span className="text-xs block text-subtle-foreground mt-0.5">
                     {partition.display_size || partition.size}
                   </span>
                 </button>
@@ -89,7 +89,7 @@ export function ReadAllSection({
       <button
         onClick={onReadAll}
         disabled={!isConnected || isReadAllRunning || backupCount === 0 || isSettingsLoading}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)] rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         <FolderOpen className="w-5 h-5" />
         {isReadAllRunning ? 'Backing up...' : `Backup ${backupCount} Partitions`}

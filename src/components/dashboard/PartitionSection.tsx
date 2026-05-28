@@ -2,6 +2,8 @@ import { ChevronDown } from 'lucide-react';
 import type { Partition } from '../../types';
 import { PartitionSkeleton } from '../PartitionSkeleton';
 import { PartitionTable } from '../PartitionTable';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
 
 interface PartitionSectionProps {
   isConnected: boolean;
@@ -41,52 +43,53 @@ export function PartitionSection({
   if (!isConnected && !isConnecting) return null;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h2 className="text-xl font-semibold text-[var(--text)]">Partition Table</h2>
-        <div className="flex items-center gap-3">
-          <button
+    <div className="flex h-full flex-col">
+      <div className="mb-3 flex flex-shrink-0 items-center justify-between">
+        <h2 className="text-xl font-semibold text-foreground">Partition Table</h2>
+        <div className="flex items-center gap-2">
+          <Button
             onClick={onFastBackup}
             disabled={!isConnected || isConnecting || isFastBackupRunning}
-            className="px-4 py-2 bg-[var(--warning)] hover:bg-[var(--warning-hover)] text-[var(--warning-foreground)] rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="warning"
+            size="sm"
           >
             {isFastBackupRunning ? 'Backing up...' : 'Backup NVRAM'}
-          </button>
+          </Button>
 
           <div className="relative" ref={rebootDropdownRef}>
-            <button
+            <Button
               onClick={onToggleRebootDropdown}
               disabled={!isConnected || isConnecting}
-              className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              variant="secondary"
+              size="sm"
             >
               Reboot
-              <ChevronDown className="w-4 h-4" />
-            </button>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
             {rebootDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden z-50">
+              <Card className="absolute right-0 z-50 mt-2 w-36 overflow-hidden border-border bg-surface p-1 shadow-lg">
                 <button
                   onClick={onRebootNormal}
-                  className="w-full px-4 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+                  className="w-full rounded-md px-3 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-hover"
                 >
                   Normal
                 </button>
                 <button
                   onClick={onRebootFastboot}
-                  className="w-full px-4 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+                  className="w-full rounded-md px-3 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-hover"
                 >
                   Fastboot
                 </button>
-                <div className="border-t border-[var(--border)]" />
+                <div className="my-1 border-t border-border" />
                 <button
                   onClick={onShutdown}
-                  className="w-full px-4 py-2 text-left text-sm text-[var(--danger)] hover:bg-[var(--surface-hover)] transition-colors"
+                  className="w-full rounded-md px-3 py-1.5 text-left text-sm text-danger transition-colors hover:bg-surface-hover"
                 >
                   Shutdown
                 </button>
-              </div>
+              </Card>
             )}
           </div>
-
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">

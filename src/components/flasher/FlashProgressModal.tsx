@@ -60,43 +60,43 @@ export function FlashProgressModal({
 
       {/* Modal */}
       <div
-        className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-lg mx-4 transition-all duration-300 ${
+        className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md mx-3 transition-all duration-300 ${
           isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         }`}
       >
-        <div className="bg-[var(--surface)] rounded-lg border-2 border-[var(--accent)] shadow-2xl overflow-hidden">
+        <div className="bg-surface rounded-md border-2 border-accent shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-start gap-3 p-5 border-b border-[var(--border)]">
-            <Zap className="w-6 h-6 text-[var(--accent)] flex-shrink-0 mt-0.5" />
-            <h2 className="text-xl font-semibold text-[var(--text)] flex-1">Flashing Partitions</h2>
+          <div className="flex items-start gap-3 p-4 border-b border-border">
+            <Zap className="w-6 h-6 text-accent flex-shrink-0 mt-0.5" />
+            <h2 className="text-xl font-semibold text-foreground flex-1">Flashing Partitions</h2>
             <div className="flex items-center gap-1">
               {onMinimize && (
                 <button
                   onClick={onMinimize}
-                  className="p-1 hover:bg-[var(--surface-alt)] rounded transition-colors"
+                  className="rounded p-1 transition-colors hover:bg-surface-alt"
                   title="Minimize to sidebar"
                 >
-                  <Minus className="w-5 h-5 text-[var(--text-muted)]" />
+                  <Minus className="w-5 h-5 text-muted-foreground" />
                 </button>
               )}
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-5 text-[var(--text)] space-y-4">
-            <p className="text-sm text-[var(--text-muted)]">
+          <div className="space-y-4 p-4 text-foreground">
+            <p className="text-sm text-muted-foreground">
               Flashing partition {currentIndex} of {totalCount}...
             </p>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[var(--text-muted)]">Current:</span>
-                <span className="font-mono text-sm text-[var(--accent)]">
+                <span className="text-muted-foreground">Current:</span>
+                <span className="font-mono text-sm text-accent">
                   {currentPartition}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[var(--text-muted)]">Progress:</span>
+                <span className="text-muted-foreground">Progress:</span>
                 <span className="font-mono text-sm">
                   {currentIndex} / {totalCount}
                 </span>
@@ -104,15 +104,15 @@ export function FlashProgressModal({
             </div>
 
             {/* Progress Bar */}
-            <div className="space-y-3 p-4 bg-[var(--surface-alt)] rounded-lg border border-[var(--border)]">
-              <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent)]">
+            <div className="space-y-3 rounded-md border border-border bg-surface-alt p-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-accent">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Flashing...</span>
               </div>
 
               <Progress value={percentage} className="animate-pulse" />
 
-              <div className="flex items-center justify-between text-xs text-[var(--text-subtle)]">
+              <div className="flex items-center justify-between text-xs text-subtle-foreground">
                 <span>{currentPartition}</span>
                 <span>{percentage.toFixed(0)}%</span>
               </div>
@@ -120,17 +120,17 @@ export function FlashProgressModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between gap-3 p-5 border-t border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex items-center justify-between gap-3 border-t border-border bg-surface p-4">
             <button
               onClick={onClose}
-              className="px-5 py-2 bg-[var(--danger)] hover:bg-[var(--danger-hover)] text-white rounded transition-colors"
+              className="rounded bg-danger px-4 py-2 text-white transition-colors hover:bg-danger-hover"
             >
               Cancel
             </button>
             {onMinimize && (
               <button
                 onClick={onMinimize}
-                className="px-5 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)] rounded transition-colors"
+                className="rounded bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary-hover"
               >
                 Minimize
               </button>

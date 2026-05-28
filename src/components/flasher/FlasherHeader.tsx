@@ -20,12 +20,12 @@ export function FlasherHeader({
   onSelectScatter,
 }: FlasherHeaderProps) {
   return (
-    <header className="border-b border-[var(--border)] p-4 bg-[var(--surface)] backdrop-blur-sm flex-shrink-0">
+    <header className="border-b border-border p-4 bg-surface backdrop-blur-sm flex-shrink-0">
       <div className="flex items-center justify-end gap-3">
         <button
           onClick={onConnect}
           disabled={isConnecting || !daPath || isConnected || isSettingsLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title={!daPath ? 'Select DA file in Dashboard first' : isConnected ? 'Already connected' : 'Connect to device'}
         >
           <Usb className="w-5 h-5" />
@@ -34,7 +34,7 @@ export function FlasherHeader({
         <button
           onClick={onSelectScatter}
           disabled={isLoadingScatter}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-foreground rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FileDown className="w-5 h-5" />
           {isLoadingScatter ? 'Loading...' : 'Load Scatter File'}

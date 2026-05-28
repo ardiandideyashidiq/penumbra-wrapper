@@ -62,11 +62,11 @@ export function Tools() {
       message: (
         <div>
           <p>This will backup {backupCount} partitions to:</p>
-          <p className="font-mono text-sm bg-[var(--surface-alt)] p-2 rounded mt-2">
+          <p className="font-mono text-sm bg-surface-alt p-2 rounded mt-2">
             {outputDir}
           </p>
           {skipList.length > 0 && (
-            <p className="mt-2 text-[var(--text-muted)]">
+            <p className="mt-2 text-muted-foreground">
               Skipping {skipList.length} partitions: {skipList.join(', ')}
             </p>
           )}
@@ -124,7 +124,7 @@ export function Tools() {
       title: isUnlock ? '⚠️ Unlock Bootloader' : '⚠️ Lock Bootloader',
       message: isUnlock ? (
         <div>
-          <p className="font-semibold text-[var(--danger)] mb-2">WARNING: UNLOCKING THE BOOTLOADER</p>
+          <p className="font-semibold text-danger mb-2">WARNING: UNLOCKING THE BOOTLOADER</p>
           <ul className="list-disc list-inside space-y-1 text-sm">
             <li>This may WIPE ALL DATA on your device</li>
             <li>Your warranty may be voided</li>
@@ -134,7 +134,7 @@ export function Tools() {
         </div>
       ) : (
         <div>
-          <p className="font-semibold text-[var(--danger)] mb-2">WARNING: LOCKING THE BOOTLOADER</p>
+          <p className="font-semibold text-danger mb-2">WARNING: LOCKING THE BOOTLOADER</p>
           <ul className="list-disc list-inside space-y-1 text-sm">
             <li>This may WIPE ALL DATA on your device</li>
             <li>You will not be able to flash custom ROMs</li>
@@ -198,8 +198,8 @@ export function Tools() {
   const backupCount = partitions.length - skipPartitions.size;
 
   return (
-    <div className="h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col">
-      <main className="flex-1 p-6 space-y-6 overflow-y-auto">
+    <div className="h-screen bg-background text-foreground flex flex-col">
+      <main className="flex-1 space-y-4 overflow-y-auto p-4">
         {!isConnected && <ConnectionWarning />}
 
         <ReadAllSection

@@ -2,6 +2,9 @@ import { useState, useCallback, useMemo, memo } from 'react';
 import type { Partition } from '../types';
 import { Download, Upload, Search, Trash2, HardDriveDownload } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
 
 interface PartitionTableProps {
   partitions: Partition[];
@@ -11,20 +14,11 @@ interface PartitionTableProps {
   onErase: (partition: Partition) => void;
 }
 
-export const PartitionTable = memo<PartitionTableProps>(({
-  partitions,
-  onRead,
-  onWrite,
-  onFormat,
-  onErase,
-}) => {
+export const PartitionTable = memo<PartitionTableProps>(({ partitions, onRead, onWrite, onFormat, onErase }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Memoize filtered partitions to avoid unnecessary re-computation
   const filteredPartitions = useMemo(
-    () => partitions.filter((p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ),
+    () => partitions.filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase())),
     [partitions, searchTerm]
   );
 
@@ -33,114 +27,86 @@ export const PartitionTable = memo<PartitionTableProps>(({
     toast.success(`Copied "${name}" to clipboard`);
   }, []);
 
-  // Memoize handler creators to avoid recreating on every render
   const createReadHandler = useCallback((partition: Partition) => () => onRead(partition), [onRead]);
   const createWriteHandler = useCallback((partition: Partition) => () => onWrite(partition), [onWrite]);
   const createFormatHandler = useCallback((partition: Partition) => () => onFormat(partition), [onFormat]);
   const createEraseHandler = useCallback((partition: Partition) => () => onErase(partition), [onErase]);
 
   return (
-    <div className="space-y-4 flex flex-col h-full">
-      {/* Search */}
+    <div className="flex h-full flex-col space-y-3">
       <div className="relative flex-shrink-0">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
-        <input
+        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+        <Input
           type="text"
           placeholder="Search partitions..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-[var(--surface-alt)] border border-[var(--border)] rounded-lg text-[var(--text)] placeholder-[var(--text-subtle)] focus:outline-none focus:border-[var(--surface-hover)]"
+          className="pl-10"
         />
       </div>
 
-      {/* Table Container with CSS Grid */}
-      <div className="flex-1 bg-[var(--surface-alt)] border border-[var(--border)] rounded-lg overflow-hidden flex flex-col">
-        {/* Fixed Header */}
-        <div className="grid grid-cols-[2fr_1.5fr_1.5fr_3fr] gap-4 px-4 py-3 bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-10">
-          <div className="text-sm font-semibold text-[var(--text)]">Name</div>
-          <div className="text-sm font-semibold text-[var(--text)]">Start</div>
-          <div className="text-sm font-semibold text-[var(--text)]">Size</div>
-          <div className="text-sm font-semibold text-[var(--text)] text-center">Actions</div>
+      <Card className="flex flex-1 flex-col overflow-hidden border-border bg-surface-alt">
+        <div className="sticky top-0 z-10 grid grid-cols-[2fr_1.5fr_1.5fr_3fr] gap-3 border-b border-border bg-surface px-3 py-2.5">
+          <div className="text-sm font-semibold text-foreground">Name</div>
+          <div className="text-sm font-semibold text-foreground">Start</div>
+          <div className="text-sm font-semibold text-foreground">Size</div>
+          <div className="text-center text-sm font-semibold text-foreground">Actions</div>
         </div>
 
-        {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto">
           {filteredPartitions.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-[var(--text-subtle)]">
-              {searchTerm
-                ? 'No partitions found matching your search'
-                : 'No partitions available'}
+            <div className="flex h-32 items-center justify-center text-subtle-foreground">
+              {searchTerm ? 'No partitions found matching your search' : 'No partitions available'}
             </div>
           ) : (
             filteredPartitions.map((partition) => (
               <div
                 key={partition.name}
-                className="grid grid-cols-[2fr_1.5fr_1.5fr_3fr] gap-4 px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors"
+                className="grid grid-cols-[2fr_1.5fr_1.5fr_3fr] gap-3 border-b border-border px-3 py-2.5 transition-colors hover:bg-surface-hover"
               >
-                {/* Name */}
                 <div className="flex items-center">
                   <button
                     onClick={() => handleCopyName(partition.name)}
-                    className="font-mono text-sm text-[var(--primary)] hover:text-[var(--primary-hover)] hover:underline text-left truncate"
+                    className="truncate text-left font-mono text-sm text-primary hover:underline"
                     title={partition.name}
                   >
                     {partition.name}
                   </button>
                 </div>
 
-                {/* Start */}
-                <div className="flex items-center font-mono text-sm text-[var(--text-muted)] truncate" title={partition.start}>
+                <div className="flex items-center truncate font-mono text-sm text-muted-foreground" title={partition.start}>
                   {partition.start}
                 </div>
 
-                {/* Size */}
-                <div className="flex items-center font-mono text-sm text-[var(--text-muted)] truncate" title={partition.size}>
+                <div className="flex items-center truncate font-mono text-sm text-muted-foreground" title={partition.size}>
                   {partition.display_size || partition.size}
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center justify-center gap-2">
-                  <button
-                    onClick={createReadHandler(partition)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)] text-sm rounded transition-colors"
-                    title="Read partition"
-                  >
-                    <Upload className="w-4 h-4" />
+                  <Button onClick={createReadHandler(partition)} size="sm">
+                    <Upload className="h-4 w-4" />
                     Read
-                  </button>
-                  <button
-                    onClick={createWriteHandler(partition)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-[var(--success)] hover:bg-[var(--success-hover)] text-[var(--success-foreground)] text-sm rounded transition-colors"
-                    title="Write partition"
-                  >
-                    <Download className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={createWriteHandler(partition)} size="sm" variant="success">
+                    <Download className="h-4 w-4" />
                     Write
-                  </button>
-                  <button
-                    onClick={createFormatHandler(partition)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-[var(--danger)] hover:bg-[var(--danger-hover)] text-[var(--danger-foreground)] text-sm rounded transition-colors"
-                    title="Format partition"
-                  >
-                    <HardDriveDownload className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={createFormatHandler(partition)} size="sm" variant="destructive">
+                    <HardDriveDownload className="h-4 w-4" />
                     Format
-                  </button>
-                  <button
-                    onClick={createEraseHandler(partition)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-[var(--warning)] hover:bg-[var(--warning-hover)] text-[var(--warning-foreground)] text-sm rounded transition-colors"
-                    title="Erase partition"
-                  >
-                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={createEraseHandler(partition)} size="sm" variant="warning">
+                    <Trash2 className="h-4 w-4" />
                     Erase
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))
           )}
         </div>
-      </div>
+      </Card>
 
-      {/* Count */}
-      <div className="text-sm text-[var(--text-subtle)] flex-shrink-0">
+      <div className="flex-shrink-0 text-sm text-subtle-foreground">
         Showing {filteredPartitions.length} of {partitions.length} partitions
       </div>
     </div>

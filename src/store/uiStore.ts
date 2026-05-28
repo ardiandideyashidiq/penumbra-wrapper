@@ -1,25 +1,5 @@
 import { create } from 'zustand';
-
-type ThemeMode = 'dark' | 'light';
-
-const THEME_STORAGE_KEY = 'uiTheme';
-
-const getInitialTheme = (): ThemeMode => {
-  if (typeof window === 'undefined') return 'dark';
-  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-  return storedTheme === 'light' ? 'light' : 'dark';
-};
-
-const applyTheme = (theme: ThemeMode) => {
-  if (typeof document === 'undefined') return;
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.style.colorScheme = theme;
-  if (typeof window !== 'undefined') {
-    import('@tauri-apps/api/window')
-      .then(({ getCurrentWindow }) => getCurrentWindow().setTheme(theme))
-      .catch(() => undefined);
-  }
-};
+import { applyTheme, getInitialTheme, THEME_STORAGE_KEY, type ThemeMode } from '../lib/theme';
 
 interface UIState {
   isLogPanelOpen: boolean;
@@ -79,6 +59,11 @@ export const useUIStore = create<UIState>((set) => ({
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     }
     applyTheme(theme);
+    if (typeof window !== 'undefined') {
+      import('@tauri-apps/api/window')
+        .then(({ getCurrentWindow }) => getCurrentWindow().setTheme(theme))
+        .catch(() => undefined);
+    }
   },
   
   toggleTheme: () =>
@@ -88,6 +73,11 @@ export const useUIStore = create<UIState>((set) => ({
         localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
       }
       applyTheme(nextTheme);
+      if (typeof window !== 'undefined') {
+        import('@tauri-apps/api/window')
+          .then(({ getCurrentWindow }) => getCurrentWindow().setTheme(nextTheme))
+          .catch(() => undefined);
+      }
       return { theme: nextTheme };
     }),
 }));

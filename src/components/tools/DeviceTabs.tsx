@@ -8,7 +8,7 @@ interface DeviceTabsProps {
 
 export function DeviceTabs({ tabs, active, onChange }: DeviceTabsProps) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] p-1">
+    <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface p-1">
       {tabs.map((tab) => {
         const isActive = tab.id === active;
         return (
@@ -19,8 +19,8 @@ export function DeviceTabs({ tabs, active, onChange }: DeviceTabsProps) {
             className={cn(
               'px-4 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition',
               isActive
-                ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow'
-                : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                ? 'bg-primary text-primary-foreground shadow'
+                : 'text-muted-foreground hover:text-foreground hover:bg-surface-hover'
             )}
           >
             {tab.label}
