@@ -80,6 +80,16 @@ export function Flasher() {
         // Auto-detect image files
         const detectedImages = await ScatterApi.detectImageFiles(selected as string, parsed.partitions);
 
+        // Ensure _b partitions share _a images if not already detected
+        for (const [name, image] of detectedImages) {
+          if (name.endsWith('_a')) {
+            const bName = name.slice(0, -2) + '_b';
+            if (!detectedImages.has(bName)) {
+              detectedImages.set(bName, image);
+            }
+          }
+        }
+
         setPartitionImages(detectedImages);
 
         // Only auto-select partitions that have image files detected
@@ -91,7 +101,9 @@ export function Flasher() {
         setSelectedPartitions(partitionsWithImages);
 
         const downloadableCount = parsed.partitions.filter((p) => p.is_download).length;
-        toast.success(`Loaded ${downloadableCount} downloadable partitions from ${parsed.platform}`);
+        const aCount = parsed.partitions.filter((p) => p.partition_name.endsWith('_a')).length;
+        const bCount = parsed.partitions.filter((p) => p.partition_name.endsWith('_b')).length;
+        toast.success(`Loaded ${downloadableCount} partitions (_a:${aCount} _b:${bCount}) from ${parsed.platform}`);
       } catch (error: unknown) {
         // ErrorHandler now extracts message from structured errors automatically
         ErrorHandler.handle(error, 'Parse scatter file', {
