@@ -20,7 +20,6 @@ pub async fn flash_partition(
 ) -> Result<(), AppError> {
     validate_da_preloader_paths(&da_path, preloader_path.as_deref())?;
     validate_input_file(&image_path, "Image file")?;
-    validate_da_preloader_paths(&da_path, preloader_path.as_deref())?;
     log::info!(
         "Flashing partition '{}' with image: {} (operation_id: {})",
         partition,

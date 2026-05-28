@@ -355,7 +355,7 @@ pub async fn adb_install(
         &format!("Installing {apk_path} (push + pm install)"),
         false,
     );
-    fallback_pm_install(&app, &device_id, &apk_path, &operation_id)
+    fallback_pm_install(&app, &device_id, &apk_path, &operation_id).await
 }
 
 #[tauri::command]
@@ -870,7 +870,7 @@ fn map_adb_error(err: RustADBError, context: &str) -> AppError {
     AppError::command(format!("{context}: {message}"))
 }
 
-fn open_device_with_retry(
+async fn open_device_with_retry(
     app: &AppHandle,
     operation_id: &str,
     device_id: &str,
@@ -905,14 +905,14 @@ fn open_device_with_retry(
                 &format!("ADB connection failed; retrying ({attempt}/{attempts})..."),
                 false,
             );
-            std::thread::sleep(delay);
+            tokio::time::sleep(delay).await;
         }
     }
 
     Err(last_error.unwrap_or_else(|| AppError::command("Failed to open ADB device")))
 }
 
-fn fallback_pm_install(
+async fn fallback_pm_install(
     app: &AppHandle,
     device_id: &str,
     apk_path: &str,
@@ -944,7 +944,9 @@ fn fallback_pm_install(
         device_id,
         3,
         Duration::from_millis(400),
-    ) {
+    )
+    .await
+    {
         Ok(device) => device,
         Err(err) => {
             emit_operation_output(app, operation_id, &err.message(), true);
