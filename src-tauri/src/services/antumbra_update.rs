@@ -287,9 +287,9 @@ fn find_asset_with_digest(release: &ReleaseInfo) -> Result<(String, String, Stri
 
 fn select_asset_name() -> Result<String> {
     if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
-        Ok("antumbra-linux-x86_64".to_string())
+        Ok("antumbra-x86_64-linux".to_string())
     } else if cfg!(target_os = "windows") && cfg!(target_arch = "x86_64") {
-        Ok("antumbra.exe".to_string())
+        Ok("antumbra-x86_64-windows.exe".to_string())
     } else if cfg!(target_os = "macos") {
         anyhow::bail!("Antumbra updates are not available for macOS yet")
     } else {
