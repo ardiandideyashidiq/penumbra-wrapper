@@ -6,14 +6,12 @@ import { useOperationStore } from '../store/operationStore';
 import { ProgressWidget } from './ProgressWidget';
 import { ErrorHandler } from '../services/utils/errorHandler';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
 
 export function LogPanel() {
   const { isLogPanelOpen, closeLogPanel, logPanelWidth, setLogPanelWidth } = useUIStore();
   // Select only needed properties from operation store to prevent unnecessary re-renders
   const logs = useOperationStore((state) => state.logs);
-  const isStreaming = useOperationStore((state) => state.isStreaming);
   const isRunning = useOperationStore((state) => state.isRunning);
   const type = useOperationStore((state) => state.type);
   const partitionName = useOperationStore((state) => state.partitionName);
@@ -164,12 +162,7 @@ export function LogPanel() {
           <div className="flex items-center gap-2">
             <Terminal className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold text-foreground">Operation Logs</h2>
-            {isStreaming && (
-            <Badge variant="success" className="gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-current animate-pulse" />
-                Live
-              </Badge>
-            )}
+
           </div>
           <div className="flex items-center gap-1.5">
             <Button

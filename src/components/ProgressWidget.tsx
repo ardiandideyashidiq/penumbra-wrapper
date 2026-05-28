@@ -1,5 +1,4 @@
 import { memo, useEffect, useState } from 'react';
-import { Badge } from './ui/badge';
 import { Card } from './ui/card';
 
 interface ProgressWidgetProps {
@@ -65,21 +64,16 @@ export const ProgressWidget = memo<ProgressWidgetProps>(({
             </span>
           )}
         </div>
+        <span className="font-mono text-xs tabular-nums text-muted-foreground">
+          {elapsedTime}
+        </span>
       </div>
 
-      <div className="mb-3 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <span className="text-2xl text-primary animate-pulse">{SPINNER_FRAMES[spinnerIndex]}</span>
         <span className="text-sm text-muted-foreground">
           {operationType === 'read' ? 'Uploading from device...' : 'Downloading to device...'}
         </span>
-      </div>
-
-      <div className="flex items-center gap-2 text-xs">
-        <Badge variant="success" className="gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-          <span className="text-[11px]">Elapsed</span>
-          <span className="font-mono">{elapsedTime}</span>
-        </Badge>
       </div>
     </Card>
   );
