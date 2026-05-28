@@ -4,6 +4,7 @@
 */
 
 pub mod antumbra;
+pub mod antumbra_download;
 pub mod antumbra_update;
 pub mod config;
 pub mod scatter_parser;
