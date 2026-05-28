@@ -4,6 +4,7 @@ use crate::services::antumbra::AntumbraExecutor;
 use chrono::Utc;
 use std::fs::OpenOptions;
 use std::path::Path;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
@@ -167,12 +168,46 @@ pub async fn execute_antumbra_command(
         cmd_args.push(pl.to_string());
     }
 
-    executor
-        .execute_streaming(app, operation_id, cmd_args)
-        .await
-        .map_err(|e| AppError::command(e.to_string()))?;
+    let max_attempts = 2;
+    let mut last_error: Option<String> = None;
 
-    Ok(())
+    for attempt in 1..=max_attempts {
+        match executor
+            .execute_streaming(app.clone(), operation_id.clone(), cmd_args.clone())
+            .await
+        {
+            Ok(_) => return Ok(()),
+            Err(e) => {
+                let err_str = e.to_string();
+                if attempt < max_attempts && err_str.to_lowercase().contains("timeout") {
+                    log::warn!(
+                        "Antumbra timed out (attempt {}/{}), retrying...",
+                        attempt,
+                        max_attempts
+                    );
+                    emit_operation_output(
+                        &app,
+                        &operation_id,
+                        &format!(
+                            "Timed out, retrying... ({}/{})",
+                            attempt, max_attempts
+                        ),
+                        true,
+                    );
+                    tokio::time::sleep(Duration::from_secs(3)).await;
+                    last_error = Some(err_str);
+                } else {
+                    return Err(AppError::command(err_str));
+                }
+            }
+        }
+    }
+
+    Err(AppError::command(format!(
+        "Antumbra process failed after {} attempts: {}",
+        max_attempts,
+        last_error.as_deref().unwrap_or("unknown")
+    )))
 }
 
 #[cfg(test)]

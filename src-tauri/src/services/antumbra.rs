@@ -30,6 +30,8 @@ impl Default for StreamingOptions {
     }
 }
 
+pub const DEFAULT_INACTIVITY_TIMEOUT_SECS: u64 = 300;
+
 pub struct AntumbraExecutor {
     binary_path: PathBuf,
     working_dir: PathBuf,
@@ -187,8 +189,10 @@ impl AntumbraExecutor {
         operation_id: String,
         args: Vec<String>,
     ) -> Result<String> {
-        self.execute_streaming_with_options(app, operation_id, args, StreamingOptions::default())
-            .await
+        self.execute_streaming_with_options(app, operation_id, args, StreamingOptions {
+            inactivity_timeout: Some(Duration::from_secs(DEFAULT_INACTIVITY_TIMEOUT_SECS)),
+        })
+        .await
     }
 
     pub async fn execute_streaming_with_options(
