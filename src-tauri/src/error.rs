@@ -81,22 +81,6 @@ pub enum AppError {
 }
 
 impl AppError {
-    /// Create a new IO error
-    pub fn io(message: impl Into<String>) -> Self {
-        AppError::Io {
-            message: message.into(),
-            code: None,
-        }
-    }
-
-    /// Create a new IO error with code
-    pub fn io_with_code(message: impl Into<String>, code: i32) -> Self {
-        AppError::Io {
-            message: message.into(),
-            code: Some(code),
-        }
-    }
-
     /// Create a new Command error
     pub fn command(message: impl Into<String>) -> Self {
         AppError::Command {
@@ -105,79 +89,11 @@ impl AppError {
         }
     }
 
-    /// Create a new Command error with output
-    pub fn command_with_output(message: impl Into<String>, output: impl Into<String>) -> Self {
-        AppError::Command {
-            message: message.into(),
-            output: Some(output.into()),
-        }
-    }
-
-    /// Create a new InvalidPartition error
-    pub fn invalid_partition(message: impl Into<String>) -> Self {
-        AppError::InvalidPartition(message.into())
-    }
-
-    /// Create a new Parse error
-    pub fn parse(message: impl Into<String>) -> Self {
-        AppError::Parse(message.into())
-    }
-
     /// Create a new Other error
     pub fn other(message: impl Into<String>) -> Self {
         AppError::Other {
             message: message.into(),
             category: ErrorCategory::Unknown,
-        }
-    }
-
-    /// Create a new Other error with category
-    pub fn other_with_category(message: impl Into<String>, category: ErrorCategory) -> Self {
-        AppError::Other {
-            message: message.into(),
-            category,
-        }
-    }
-
-    /// Get the error category for classification
-    pub fn category(&self) -> ErrorCategory {
-        match self {
-            AppError::Io { .. } => ErrorCategory::FileSystem,
-            AppError::Command { .. } => ErrorCategory::Command,
-            AppError::DeviceNotConnected => ErrorCategory::Validation,
-            AppError::Cancelled => ErrorCategory::Unknown,
-            AppError::InvalidPartition(_) => ErrorCategory::Validation,
-            AppError::Parse(_) => ErrorCategory::Validation,
-            AppError::Update { category, .. } => category.clone(),
-            AppError::Other { category, .. } => category.clone(),
-        }
-    }
-
-    /// Get user-friendly suggestion for resolving the error
-    pub fn suggestion(&self) -> Option<String> {
-        match self {
-            AppError::Update { suggestion, .. } => suggestion.clone(),
-            AppError::Io { message, .. } => {
-                let msg_lower = message.to_lowercase();
-                if msg_lower.contains("permission") || msg_lower.contains("access denied") {
-                    Some("Run as Administrator or check folder permissions".to_string())
-                } else if msg_lower.contains("not found") || msg_lower.contains("does not exist") {
-                    Some("Check that the file or directory exists".to_string())
-                } else {
-                    None
-                }
-            }
-            AppError::Command { message, .. } => {
-                if message.contains("antumbra") {
-                    Some("Ensure antumbra binary is installed and accessible".to_string())
-                } else {
-                    None
-                }
-            }
-            AppError::DeviceNotConnected => {
-                Some("Connect your device and ensure it's in the correct mode (BROM/preloader)".to_string())
-            }
-            _ => None,
         }
     }
 
