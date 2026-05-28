@@ -2,9 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - nightly
-  workflow_dispatch:
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,14 +30,13 @@ jobs:
             const releaseBody = [
               '## PenumbraWrapper nightly',
               '',
-              '### Installation',
+              'Built from the latest push to `main`.',
               '',
-              '**Windows:**',
-              '- Download `.msi` for installation',
+              '### Downloads',
               '',
-              '**Linux:**',
-              '- **Fedora/openSUSE:** Download `.rpm`',
-              '- **Debian/Ubuntu:** Download `.deb`',
+              '- Debian-based Linux: `.deb`',
+              '- Fedora/openSUSE Linux: `.rpm`',
+              '- Windows: `.exe` and `.msi`',
             ].join('\n');
 
             let release;
@@ -81,17 +79,15 @@ jobs:
         include:
           - platform: ubuntu-22.04
             bundles: deb,rpm
-            install_linux_deps: true
           - platform: windows-latest
-            bundles: msi
-            install_linux_deps: false
+            bundles: nsis,msi
 
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
@@ -101,12 +97,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust dependencies
-        uses: swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          cache-on-failure: true
 
-      - name: Install dependencies (Ubuntu only)
-        if: matrix.install_linux_deps
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -121,15 +118,12 @@ jobs:
         run: npm ci
 
       - name: Build and upload Tauri app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tauriScript: npm run tauri
-          args: --bundles ${{ matrix.bundles }}
-          includeDebug: false
-          includeRelease: true
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          tagName: nightly
-          releaseDraft: false
-          prerelease: false
+          retryAttempts: 2
+          uploadUpdaterJson: false
+          tauriScript: npx tauri
+          args: --bundles ${{ matrix.bundles }}
