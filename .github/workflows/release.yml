@@ -1,9 +1,9 @@
 name: Release
 
 on:
-  release:
-    types: [published]
   push:
+    tags:
+      - nightly
   workflow_dispatch:
 
 concurrency:
@@ -14,70 +14,89 @@ permissions:
   contents: write
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.release-info.outputs.version }}
-      tag-name: ${{ steps.release-info.outputs.tag-name }}
-      release-id: ${{ steps.release-info.outputs.release-id }}
-      is-manual: ${{ steps.release-info.outputs.is-manual }}
-    steps:
-      - name: Determine release info
-        id: release-info
-        run: |
-          if [ "${{ github.event_name }}" == "release" ]; then
-            echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-            echo "tag-name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-            echo "release-id=${{ github.event.release.id }}" >> $GITHUB_OUTPUT
-            echo "is-manual=false" >> $GITHUB_OUTPUT
-          else
-            VERSION="v$(date +'%Y.%m.%d-%H%M%S')"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "tag-name=$VERSION" >> $GITHUB_OUTPUT
-            echo "release-id=" >> $GITHUB_OUTPUT
-            echo "is-manual=true" >> $GITHUB_OUTPUT
-          fi
-
   create-release:
-    needs: prepare
     runs-on: ubuntu-latest
-    if: needs.prepare.outputs.is-manual == 'true'
     outputs:
-      release-id: ${{ steps.create-release.outputs.release-id }}
+      version: ${{ steps.metadata.outputs.version }}
+      tag_name: ${{ steps.metadata.outputs.tag_name }}
+      release_id: ${{ steps.publish-release.outputs.release_id }}
     steps:
-      - name: Create Release
-        id: create-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate release metadata
+        id: metadata
         run: |
-          VERSION="${{ needs.prepare.outputs.version }}"
-          RESPONSE=$(curl -X POST \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/releases" \
-            -d "{
-              \"tag_name\": \"$VERSION\",
-              \"name\": \"PenumbraWrapper $VERSION\",
-              \"body\": \"## PenumbraWrapper $VERSION\\n\\n### Installation\\n\\n**Windows:**\\n- Download .msi for installation\\n\\n**Linux:**\\n- Fedora/openSUSE: Download .rpm\\n- Debian/Ubuntu: Download .deb\",
-              \"draft\": false,
-              \"prerelease\": false,
-              \"generate_release_notes\": false
-            }")
-          RELEASE_ID=$(echo "$RESPONSE" | jq -r '.id')
-          echo "release-id=$RELEASE_ID" >> $GITHUB_OUTPUT
+          VERSION="v$(date -u +'%Y.%m.%d-%H%M%S')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        id: publish-release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const core = require('@actions/core');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const version = '${{ steps.metadata.outputs.version }}';
+            const tagName = '${{ steps.metadata.outputs.tag_name }}';
+            const releaseBody = [
+              `## PenumbraWrapper ${version}`,
+              '',
+              '### Installation',
+              '',
+              '**Windows:**',
+              '- Download `.msi` for installation',
+              '',
+              '**Linux:**',
+              '- **Fedora/openSUSE:** Download `.rpm`',
+              '- **Debian/Ubuntu:** Download `.deb`',
+            ].join('\n');
+
+            let release;
+
+            try {
+              const response = await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tagName,
+                name: `PenumbraWrapper ${version}`,
+                body: releaseBody,
+                draft: false,
+                prerelease: false,
+                generate_release_notes: false,
+                target_commitish: context.sha,
+              });
+
+              release = response.data;
+            } catch (error) {
+              if (error.status !== 422) {
+                throw error;
+              }
+
+              const response = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag: tagName,
+              });
+
+              release = response.data;
+            }
+
+            core.setOutput('release_id', String(release.id));
 
   build:
-    needs: [prepare, create-release]
-    if: always() && (needs.create-release.result == 'success' || needs.create-release.result == 'skipped')
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: ubuntu-22.04
             bundles: deb,rpm
+            install_linux_deps: true
           - platform: windows-latest
             bundles: msi
+            install_linux_deps: false
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -87,18 +106,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          cache: 'npm'
+          node-version: lts/*
+          cache: npm
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
         with:
-          cache-workspaces: |
-            src-tauri
-            .
+          workspaces: src-tauri
 
       - name: Install dependencies (Ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.install_linux_deps
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -112,9 +132,6 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build frontend
-        run: npm run build
-
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -123,18 +140,7 @@ jobs:
           args: --bundles ${{ matrix.bundles }}
           includeDebug: false
           includeRelease: true
-          tagName: ${{ needs.prepare.outputs.tag-name }}
-          releaseName: 'PenumbraWrapper ${{ needs.prepare.outputs.version }}'
-          releaseBody: |
-            ## PenumbraWrapper ${{ needs.prepare.outputs.version }}
-
-            ### Installation
-
-            **Windows:**
-            - Download `.msi` for installation
-
-            **Linux:**
-            - **Fedora/openSUSE:** Download `.rpm`
-            - **Debian/Ubuntu:** Download `.deb`
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          tagName: ${{ needs.create-release.outputs.tag_name }}
           releaseDraft: false
           prerelease: false
