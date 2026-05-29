@@ -115,12 +115,9 @@ async fn main() {
             commands::fastboot_tools::fastboot_set_active_slot,
             commands::fastboot_tools::fastboot_reboot_fastbootd,
         ])
-        .setup(|app| {
+        .setup(|_app| {
             // Initialize services on startup
             log::info!("PenumbraWrapper starting...");
-            if let Err(err) = services::antumbra::seed_antumbra_binary(app.handle()) {
-                log::warn!("Failed to seed antumbra binary: {}", err);
-            }
             Ok(())
         })
         .on_window_event(|_window, event| {

@@ -165,8 +165,40 @@ async fn stream_lines<R>(
 
 impl AntumbraExecutor {
     pub fn new(app: &AppHandle) -> Result<Self> {
-        let binary_path = get_antumbra_path(app)?;
-        let working_dir = get_antumbra_working_dir(app, &binary_path)?;
+        let found_path = get_antumbra_path(app)?;
+
+        let (binary_path, working_dir) = {
+            let parent = found_path
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Antumbra binary has no parent directory"))?;
+
+            if is_dir_writable(parent) {
+                log::info!("Antumbra binary is in writable directory: {:?}", parent);
+                (found_path, parent.to_path_buf())
+            } else {
+                log::warn!(
+                    "Antumbra binary directory is not writable: {}",
+                    parent.display()
+                );
+                let writable_binary = get_antumbra_updatable_path(app)?;
+                log::info!(
+                    "Copying antumbra binary to writable location: {:?}",
+                    writable_binary
+                );
+                let writable_parent = writable_binary
+                    .parent()
+                    .ok_or_else(|| anyhow::anyhow!("Writable antumbra path has no parent"))?
+                    .to_path_buf();
+
+                std::fs::copy(&found_path, &writable_binary).context(format!(
+                    "Failed to copy antumbra binary from {:?} to {:?}",
+                    found_path, writable_binary
+                ))?;
+
+                (writable_binary, writable_parent)
+            }
+        };
+
         log::info!("Antumbra binary path: {:?}", binary_path);
         log::info!("Antumbra working dir: {:?}", working_dir);
         log::info!("Antumbra binary exists: {}", binary_path.exists());
@@ -546,28 +578,6 @@ pub fn sync_detected_version_to_config(_app: &AppHandle, detected_version: &str)
     Ok(())
 }
 
-fn get_antumbra_working_dir(app: &AppHandle, binary_path: &PathBuf) -> Result<PathBuf> {
-    if let Some(parent) = binary_path.parent() {
-        if parent.is_dir() {
-            if is_dir_writable(parent) {
-                return Ok(parent.to_path_buf());
-            } else {
-                log::warn!(
-                    "Antumbra binary directory is not writable: {}",
-                    parent.display()
-                );
-            }
-        }
-    }
-
-    let config_dir = app
-        .path()
-        .app_config_dir()
-        .context("Failed to get config directory")?;
-    std::fs::create_dir_all(&config_dir).context("Failed to create antumbra working directory")?;
-    Ok(config_dir)
-}
-
 fn store_last_command(binary_path: &PathBuf, working_dir: &PathBuf, args: &[String]) {
     let info = AntumbraCommandInfo {
         command: binary_path.display().to_string(),
@@ -605,47 +615,6 @@ pub fn get_existing_antumbra_path(app: &AppHandle) -> Result<Option<PathBuf>> {
     }
 
     Ok(None)
-}
-
-pub fn seed_antumbra_binary(app: &AppHandle) -> Result<()> {
-    let updatable_path = get_antumbra_updatable_path(app)?;
-    if updatable_path.exists() {
-        log::info!(
-            "Antumbra binary already exists at {:?}, skipping seed",
-            updatable_path
-        );
-        return Ok(());
-    }
-
-    let Ok(resource_dir) = app.path().resource_dir() else {
-        log::warn!("Could not resolve resource directory, skipping antumbra seed");
-        return Ok(());
-    };
-    let bundled_path = resource_dir.join(binary_name());
-    if !bundled_path.exists() {
-        log::warn!(
-            "Bundled antumbra binary not found at {:?}, skipping seed",
-            bundled_path
-        );
-        return Ok(());
-    }
-
-    if let Some(parent) = updatable_path.parent() {
-        std::fs::create_dir_all(parent)
-            .context("Failed to create antumbra bin directory for seed")?;
-    }
-
-    std::fs::copy(&bundled_path, &updatable_path).context(format!(
-        "Failed to copy antumbra binary from {:?} to {:?}",
-        bundled_path, updatable_path
-    ))?;
-
-    log::info!(
-        "Seeded antumbra binary from {:?} to {:?}",
-        bundled_path,
-        updatable_path
-    );
-    Ok(())
 }
 
 fn get_antumbra_path(app: &AppHandle) -> Result<PathBuf> {
