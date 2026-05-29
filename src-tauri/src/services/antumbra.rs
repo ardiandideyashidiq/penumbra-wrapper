@@ -607,6 +607,47 @@ pub fn get_existing_antumbra_path(app: &AppHandle) -> Result<Option<PathBuf>> {
     Ok(None)
 }
 
+pub fn seed_antumbra_binary(app: &AppHandle) -> Result<()> {
+    let updatable_path = get_antumbra_updatable_path(app)?;
+    if updatable_path.exists() {
+        log::info!(
+            "Antumbra binary already exists at {:?}, skipping seed",
+            updatable_path
+        );
+        return Ok(());
+    }
+
+    let Ok(resource_dir) = app.path().resource_dir() else {
+        log::warn!("Could not resolve resource directory, skipping antumbra seed");
+        return Ok(());
+    };
+    let bundled_path = resource_dir.join(binary_name());
+    if !bundled_path.exists() {
+        log::warn!(
+            "Bundled antumbra binary not found at {:?}, skipping seed",
+            bundled_path
+        );
+        return Ok(());
+    }
+
+    if let Some(parent) = updatable_path.parent() {
+        std::fs::create_dir_all(parent)
+            .context("Failed to create antumbra bin directory for seed")?;
+    }
+
+    std::fs::copy(&bundled_path, &updatable_path).context(format!(
+        "Failed to copy antumbra binary from {:?} to {:?}",
+        bundled_path, updatable_path
+    ))?;
+
+    log::info!(
+        "Seeded antumbra binary from {:?} to {:?}",
+        bundled_path,
+        updatable_path
+    );
+    Ok(())
+}
+
 fn get_antumbra_path(app: &AppHandle) -> Result<PathBuf> {
     // Get resource directory
     if let Some(existing_path) = get_existing_antumbra_path(app)? {
