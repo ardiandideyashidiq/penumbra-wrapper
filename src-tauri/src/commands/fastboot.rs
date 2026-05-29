@@ -5,6 +5,7 @@
 
 use crate::commands::{emit_operation_complete, emit_operation_output};
 use crate::error::AppError;
+use crate::services::device_discovery;
 use serde::Serialize;
 use std::io::Write;
 use std::time::{Duration, Instant};
@@ -70,6 +71,15 @@ fn force_fastboot_blocking(app: AppHandle) -> FastbootResult {
         "Starting MTK fastboot attempt...",
         false,
     );
+
+    if let Ok(true) = device_discovery::ensure_udev_rules(Some(&app)) {
+        emit_operation_output(
+            &app,
+            &operation_id,
+            "MediaTek udev rules installed for device access.",
+            false,
+        );
+    }
 
     let expected_ack = build_expected_ack();
     let scan_deadline = Instant::now() + Duration::from_secs_f32(SCAN_WINDOW_SECS);

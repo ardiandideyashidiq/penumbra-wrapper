@@ -1,6 +1,7 @@
 use crate::error::AppError;
 use crate::models::{FlashProgress, OperationCompleteEvent, OperationOutputEvent};
 use crate::services::antumbra::AntumbraExecutor;
+use crate::services::device_discovery;
 use chrono::Utc;
 use std::fs::OpenOptions;
 use std::path::Path;
@@ -156,6 +157,16 @@ pub async fn execute_antumbra_command(
         "execute_antumbra_command: op={}, da={:?}, preloader={:?}, args={:?}",
         operation_id, da_path, preloader_path, args
     );
+
+    if let Ok(true) = device_discovery::ensure_udev_rules(Some(&app)) {
+        emit_operation_output(
+            &app,
+            &operation_id,
+            "MediaTek udev rules installed for device access.",
+            false,
+        );
+    }
+
     validate_da_preloader_paths(da_path, preloader_path)?;
     let executor = AntumbraExecutor::new(&app)?;
 

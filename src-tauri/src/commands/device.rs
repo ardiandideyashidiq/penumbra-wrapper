@@ -7,6 +7,7 @@ use crate::commands::{execute_antumbra_command, validate_da_preloader_paths};
 use crate::error::AppError;
 use crate::models::{Partition, PartitionListResult};
 use crate::services::antumbra::AntumbraExecutor;
+use crate::services::device_discovery;
 use tauri::{AppHandle, Window};
 use uuid::Uuid;
 
@@ -55,6 +56,8 @@ pub async fn list_partitions(
     _window: Window,
 ) -> Result<PartitionListResult, AppError> {
     log::info!("Listing partitions with DA: {}", da_path);
+
+    let _ = device_discovery::ensure_udev_rules(Some(&app));
 
     validate_da_preloader_paths(&da_path, preloader_path.as_deref())?;
 
