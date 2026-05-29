@@ -232,6 +232,7 @@ export function Flasher() {
 
   const handleFlashModalClose = () => {
     flashingCancelled.current = true;
+    setFlashModalOpen(false);
   };
 
   const handleFlashModalMinimize = () => {
