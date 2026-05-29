@@ -23,15 +23,17 @@ use crate::services::antumbra::{kill_current_process, AntumbraExecutor};
 use tauri::AppHandle;
 
 pub use helpers::{
-    emit_operation_complete, emit_operation_output, execute_antumbra_command,
-    result_with_emit, validate_da_preloader_paths, validate_input_file,
-    validate_output_dir, validate_output_parent,
+    build_antumbra_args, emit_operation_complete, emit_operation_output, execute_antumbra_command,
+    result_with_emit, validate_da_preloader_paths, validate_input_file, validate_output_dir,
+    validate_output_parent,
 };
 
 #[tauri::command]
 pub async fn get_antumbra_version(app: AppHandle) -> Result<String, AppError> {
     let executor = AntumbraExecutor::new(&app)?;
-    executor.get_version().map_err(|e| AppError::command(e.to_string()))
+    executor
+        .get_version()
+        .map_err(|e| AppError::command(e.to_string()))
 }
 
 #[tauri::command]

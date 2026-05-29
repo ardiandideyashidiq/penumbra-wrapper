@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::AsyncReadExt;
 use tokio::process::Command as TokioCommand;
@@ -49,7 +49,11 @@ static LAST_COMMAND: OnceLock<Mutex<Option<AntumbraCommandInfo>>> = OnceLock::ne
 static CURRENT_PID: OnceLock<Mutex<Option<u32>>> = OnceLock::new();
 
 fn binary_name() -> &'static str {
-    if cfg!(windows) { "antumbra.exe" } else { "antumbra" }
+    if cfg!(windows) {
+        "antumbra.exe"
+    } else {
+        "antumbra"
+    }
 }
 
 fn emit_stream_line(
@@ -179,7 +183,10 @@ impl AntumbraExecutor {
             std::fs::set_permissions(&binary_path, perms)?;
         }
 
-        Ok(Self { binary_path, working_dir })
+        Ok(Self {
+            binary_path,
+            working_dir,
+        })
     }
 
     /// Execute antumbra with real-time streaming output
@@ -189,9 +196,14 @@ impl AntumbraExecutor {
         operation_id: String,
         args: Vec<String>,
     ) -> Result<String> {
-        self.execute_streaming_with_options(app, operation_id, args, StreamingOptions {
-            inactivity_timeout: Some(Duration::from_secs(DEFAULT_INACTIVITY_TIMEOUT_SECS)),
-        })
+        self.execute_streaming_with_options(
+            app,
+            operation_id,
+            args,
+            StreamingOptions {
+                inactivity_timeout: Some(Duration::from_secs(DEFAULT_INACTIVITY_TIMEOUT_SECS)),
+            },
+        )
         .await
     }
 
@@ -204,34 +216,36 @@ impl AntumbraExecutor {
     ) -> Result<String> {
         store_last_command(&self.binary_path, &self.working_dir, &args);
         log::info!(
-            "Executing antumbra (streaming) with args: {:?} (cwd: {:?})",
+            "Executing antumbra (streaming): binary={:?}, cwd={:?}, args={:?}",
+            self.binary_path,
+            self.working_dir,
             args,
-            self.working_dir
         );
+        let started_at = Instant::now();
 
         let mut child = {
-        #[cfg(windows)]
-        {
-            let mut cmd = TokioCommand::new(&self.binary_path);
-            cmd.args(&args)
-                .current_dir(&self.working_dir)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped());
-            // CREATE_NO_WINDOW flag to hide console window
-            cmd.creation_flags(0x08000000);
-            cmd
+            #[cfg(windows)]
+            {
+                let mut cmd = TokioCommand::new(&self.binary_path);
+                cmd.args(&args)
+                    .current_dir(&self.working_dir)
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped());
+                // CREATE_NO_WINDOW flag to hide console window
+                cmd.creation_flags(0x08000000);
+                cmd
+            }
+            #[cfg(not(windows))]
+            {
+                TokioCommand::new(&self.binary_path)
+                    .args(&args)
+                    .current_dir(&self.working_dir)
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+            }
         }
-        #[cfg(not(windows))]
-        {
-            TokioCommand::new(&self.binary_path)
-                .args(&args)
-                .current_dir(&self.working_dir)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-        }
-    }
-    .spawn()
-    .context("Failed to spawn antumbra process")?;
+        .spawn()
+        .context("Failed to spawn antumbra process")?;
 
         set_current_pid(child.id());
 
@@ -309,8 +323,11 @@ impl AntumbraExecutor {
         };
 
         log::info!(
-            "antumbra process finished: success={}, operation_id={}",
-            status.success(), operation_id
+            "antumbra process finished: success={}, status={:?}, duration_ms={}, operation_id={}",
+            status.success(),
+            status.code(),
+            started_at.elapsed().as_millis(),
+            operation_id
         );
 
         clear_current_pid();
@@ -319,7 +336,11 @@ impl AntumbraExecutor {
         let complete_event = OperationCompleteEvent {
             operation_id: operation_id.clone(),
             success: status.success(),
-            error: if status.success() { None } else { Some(stderr_output.clone()) },
+            error: if status.success() {
+                None
+            } else {
+                Some(stderr_output.clone())
+            },
         };
 
         app.emit("operation:complete", complete_event)
@@ -373,7 +394,11 @@ impl AntumbraExecutor {
     }
 
     pub fn get_version(&self) -> Result<String> {
-        store_last_command(&self.binary_path, &self.working_dir, &["--version".to_string()]);
+        store_last_command(
+            &self.binary_path,
+            &self.working_dir,
+            &["--version".to_string()],
+        );
         let output = create_hidden_command(&self.binary_path, &["--version".to_string()])
             .current_dir(&self.working_dir)
             .stdout(Stdio::piped())
@@ -382,7 +407,6 @@ impl AntumbraExecutor {
 
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     }
-
 }
 
 fn set_current_pid(pid: Option<u32>) {
@@ -415,7 +439,9 @@ pub fn kill_current_process() -> Result<()> {
         }
         #[cfg(not(any(unix, windows)))]
         {
-            return Err(anyhow::anyhow!("Process cancellation not supported on this platform"));
+            return Err(anyhow::anyhow!(
+                "Process cancellation not supported on this platform"
+            ));
         }
     }
 
@@ -425,22 +451,30 @@ pub fn kill_current_process() -> Result<()> {
 
 #[cfg(windows)]
 fn kill_windows_process(pid: u32) -> Result<()> {
-    use winapi::um::processthreadsapi::{OpenProcess, TerminateProcess};
-    use winapi::um::handleapi::CloseHandle;
-    use winapi::um::winnt::{PROCESS_TERMINATE, HANDLE};
     use winapi::um::errhandlingapi::GetLastError;
+    use winapi::um::handleapi::CloseHandle;
+    use winapi::um::processthreadsapi::{OpenProcess, TerminateProcess};
+    use winapi::um::winnt::{HANDLE, PROCESS_TERMINATE};
 
     unsafe {
         let handle = OpenProcess(PROCESS_TERMINATE, 0, pid);
         if handle.is_null() {
             let error = GetLastError();
-            return Err(anyhow::anyhow!("Failed to open process {}: Error code {}", pid, error));
+            return Err(anyhow::anyhow!(
+                "Failed to open process {}: Error code {}",
+                pid,
+                error
+            ));
         }
 
         let result = TerminateProcess(handle as HANDLE, 1);
         if result == 0 {
             let error = GetLastError();
-            return Err(anyhow::anyhow!("Failed to terminate process {}: Error code {}", pid, error));
+            return Err(anyhow::anyhow!(
+                "Failed to terminate process {}: Error code {}",
+                pid,
+                error
+            ));
         }
 
         CloseHandle(handle);
@@ -468,35 +502,47 @@ fn create_hidden_command(binary_path: &std::path::Path, args: &[String]) -> std:
 }
 
 pub fn get_antumbra_updatable_path(app: &AppHandle) -> Result<PathBuf> {
-    let config_dir = app.path().app_config_dir().context("Failed to get config directory")?;
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .context("Failed to get config directory")?;
     let bin_dir = config_dir.join("bin");
     std::fs::create_dir_all(&bin_dir).context("Failed to create antumbra bin directory")?;
     Ok(bin_dir.join(binary_name()))
 }
 
 pub fn get_last_command_info() -> Option<AntumbraCommandInfo> {
-    LAST_COMMAND.get_or_init(|| Mutex::new(None)).lock().ok().and_then(|guard| guard.clone())
+    LAST_COMMAND
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .ok()
+        .and_then(|guard| guard.clone())
 }
 
 /// Sync detected antumbra version to configuration if config version is null
 pub fn sync_detected_version_to_config(_app: &AppHandle, detected_version: &str) -> Result<()> {
     use crate::services::config::{load_settings, save_settings};
-    
+
     // Load current settings
-    let mut settings = load_settings()
-        .context("Failed to load settings for version sync")?;
-    
+    let mut settings = load_settings().context("Failed to load settings for version sync")?;
+
     // Only update if version is None or different
-    if settings.antumbra_version.is_none() || 
-       settings.antumbra_version.as_ref() != Some(&detected_version.to_string()) {
+    if settings.antumbra_version.is_none()
+        || settings.antumbra_version.as_ref() != Some(&detected_version.to_string())
+    {
         settings.antumbra_version = Some(detected_version.to_string());
-        save_settings(&settings)
-            .context("Failed to save synced version to config")?;
-        log::info!("Synced detected antumbra version '{}' to configuration", detected_version);
+        save_settings(&settings).context("Failed to save synced version to config")?;
+        log::info!(
+            "Synced detected antumbra version '{}' to configuration",
+            detected_version
+        );
     } else {
-        log::debug!("Configuration already contains version {}, no sync needed", detected_version);
+        log::debug!(
+            "Configuration already contains version {}, no sync needed",
+            detected_version
+        );
     }
-    
+
     Ok(())
 }
 
@@ -514,7 +560,10 @@ fn get_antumbra_working_dir(app: &AppHandle, binary_path: &PathBuf) -> Result<Pa
         }
     }
 
-    let config_dir = app.path().app_config_dir().context("Failed to get config directory")?;
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .context("Failed to get config directory")?;
     std::fs::create_dir_all(&config_dir).context("Failed to create antumbra working directory")?;
     Ok(config_dir)
 }
@@ -534,7 +583,10 @@ fn store_last_command(binary_path: &PathBuf, working_dir: &PathBuf, args: &[Stri
 }
 
 fn now_millis() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 pub fn get_existing_antumbra_path(app: &AppHandle) -> Result<Option<PathBuf>> {
@@ -543,7 +595,10 @@ pub fn get_existing_antumbra_path(app: &AppHandle) -> Result<Option<PathBuf>> {
         return Ok(Some(updatable_path));
     }
 
-    let resource_path = app.path().resource_dir().context("Failed to get resource directory")?;
+    let resource_path = app
+        .path()
+        .resource_dir()
+        .context("Failed to get resource directory")?;
     let resource_binary = resource_path.join(binary_name());
     if resource_binary.exists() {
         return Ok(Some(resource_binary));
@@ -558,7 +613,10 @@ fn get_antumbra_path(app: &AppHandle) -> Result<PathBuf> {
         return Ok(existing_path);
     }
 
-    let resource_path = app.path().resource_dir().context("Failed to get resource directory")?;
+    let resource_path = app
+        .path()
+        .resource_dir()
+        .context("Failed to get resource directory")?;
     let fallback_path = resource_path.join(binary_name());
 
     anyhow::bail!("Antumbra binary not found at {:?}", fallback_path)

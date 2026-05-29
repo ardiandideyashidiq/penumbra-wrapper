@@ -9,12 +9,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
-pub fn emit_operation_output(
-    app: &AppHandle,
-    operation_id: &str,
-    line: &str,
-    is_stderr: bool,
-) {
+pub fn emit_operation_output(app: &AppHandle, operation_id: &str, line: &str, is_stderr: bool) {
     let event = OperationOutputEvent {
         operation_id: operation_id.to_string(),
         line: line.to_string(),
@@ -45,7 +40,11 @@ pub fn emit_operation_progress(
     partition_name: &str,
     operation: &str,
 ) {
-    let pct = if total > 0 { current as f32 / total as f32 * 100.0 } else { 0.0 };
+    let pct = if total > 0 {
+        current as f32 / total as f32 * 100.0
+    } else {
+        0.0
+    };
     let event = FlashProgress {
         current,
         total,
@@ -120,7 +119,11 @@ pub fn validate_output_parent(path: &str, label: &str) -> Result<(), AppError> {
 pub fn is_dir_writable(path: &Path) -> bool {
     let test_name = format!(".penumbra-write-test-{}", Uuid::new_v4());
     let test_path = path.join(test_name);
-    if let Ok(file) = std::fs::OpenOptions::new().write(true).create_new(true).open(&test_path) {
+    if let Ok(file) = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&test_path)
+    {
         drop(file);
         let _ = std::fs::remove_file(&test_path);
         return true;
@@ -130,7 +133,12 @@ pub fn is_dir_writable(path: &Path) -> bool {
 
 fn validate_readable_file(path: &Path, label: &str) -> Result<(), AppError> {
     OpenOptions::new().read(true).open(path).map_err(|err| {
-        AppError::command(format!("{} not readable: {} ({})", label, path.display(), err))
+        AppError::command(format!(
+            "{} not readable: {} ({})",
+            label,
+            path.display(),
+            err
+        ))
     })?;
     Ok(())
 }
@@ -146,6 +154,57 @@ fn validate_writable_dir(path: &Path, label: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+pub fn build_antumbra_args(
+    da_path: &str,
+    preloader_path: Option<&str>,
+    command_args: Vec<String>,
+) -> Vec<String> {
+    let mut args = Vec::with_capacity(command_args.len() + 4);
+    args.push("--da".to_string());
+    args.push(da_path.to_string());
+
+    if let Some(pl) = preloader_path {
+        args.push("--pl".to_string());
+        args.push(pl.to_string());
+    }
+
+    args.extend(command_args);
+    args
+}
+
+fn is_download_command(args: &[String]) -> bool {
+    matches!(
+        args.first().map(String::as_str),
+        Some("download" | "dl" | "write" | "w")
+    )
+}
+
+fn log_input_file_size(args: &[String]) {
+    let Some(command) = args.first().map(String::as_str) else {
+        return;
+    };
+
+    let path_arg = match command {
+        "download" | "dl" | "write" | "w" => args.get(2),
+        _ => None,
+    };
+
+    if let Some(path) = path_arg {
+        match std::fs::metadata(path) {
+            Ok(metadata) => log::info!(
+                "Antumbra input file size: {} bytes ({})",
+                metadata.len(),
+                path
+            ),
+            Err(err) => log::warn!(
+                "Failed to read Antumbra input file metadata for {}: {}",
+                path,
+                err
+            ),
+        }
+    }
+}
+
 pub async fn execute_antumbra_command(
     app: AppHandle,
     operation_id: String,
@@ -155,7 +214,10 @@ pub async fn execute_antumbra_command(
 ) -> Result<(), AppError> {
     log::info!(
         "execute_antumbra_command: op={}, da={:?}, preloader={:?}, args={:?}",
-        operation_id, da_path, preloader_path, args
+        operation_id,
+        da_path,
+        preloader_path,
+        args
     );
 
     if let Ok(true) = device_discovery::ensure_udev_rules(Some(&app)) {
@@ -169,17 +231,12 @@ pub async fn execute_antumbra_command(
 
     validate_da_preloader_paths(da_path, preloader_path)?;
     let executor = AntumbraExecutor::new(&app)?;
+    log_input_file_size(&args);
 
-    let mut cmd_args = args;
-    cmd_args.push("-d".to_string());
-    cmd_args.push(da_path.to_string());
+    let should_retry_timeout = !is_download_command(&args);
+    let max_attempts = if should_retry_timeout { 2 } else { 1 };
+    let cmd_args = build_antumbra_args(da_path, preloader_path, args);
 
-    if let Some(pl) = preloader_path {
-        cmd_args.push("-p".to_string());
-        cmd_args.push(pl.to_string());
-    }
-
-    let max_attempts = 2;
     let mut last_error: Option<String> = None;
 
     for attempt in 1..=max_attempts {
@@ -190,7 +247,10 @@ pub async fn execute_antumbra_command(
             Ok(_) => return Ok(()),
             Err(e) => {
                 let err_str = e.to_string();
-                if attempt < max_attempts && err_str.to_lowercase().contains("timeout") {
+                if should_retry_timeout
+                    && attempt < max_attempts
+                    && err_str.to_lowercase().contains("timeout")
+                {
                     log::warn!(
                         "Antumbra timed out (attempt {}/{}), retrying...",
                         attempt,
@@ -199,10 +259,7 @@ pub async fn execute_antumbra_command(
                     emit_operation_output(
                         &app,
                         &operation_id,
-                        &format!(
-                            "Timed out, retrying... ({}/{})",
-                            attempt, max_attempts
-                        ),
+                        &format!("Timed out, retrying... ({}/{})", attempt, max_attempts),
                         true,
                     );
                     tokio::time::sleep(Duration::from_secs(3)).await;
@@ -254,5 +311,61 @@ mod tests {
     #[test]
     fn test_validate_da_preloader_paths_nonexistent() {
         assert!(validate_da_preloader_paths("/nonexistent/da.bin", None).is_err());
+    }
+
+    #[test]
+    fn build_antumbra_args_places_da_before_command() {
+        let args = build_antumbra_args(
+            "/tmp/DA.bin",
+            None,
+            vec![
+                "download".to_string(),
+                "super".to_string(),
+                "super.img".to_string(),
+            ],
+        );
+
+        assert_eq!(
+            args,
+            vec![
+                "--da".to_string(),
+                "/tmp/DA.bin".to_string(),
+                "download".to_string(),
+                "super".to_string(),
+                "super.img".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn build_antumbra_args_places_preloader_before_command() {
+        let args = build_antumbra_args(
+            "/tmp/DA.bin",
+            Some("/tmp/preloader.bin"),
+            vec!["pgpt".to_string()],
+        );
+
+        assert_eq!(
+            args,
+            vec![
+                "--da".to_string(),
+                "/tmp/DA.bin".to_string(),
+                "--pl".to_string(),
+                "/tmp/preloader.bin".to_string(),
+                "pgpt".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn download_commands_do_not_retry_timeout() {
+        assert!(is_download_command(&["download".to_string()]));
+        assert!(is_download_command(&["write".to_string()]));
+    }
+
+    #[test]
+    fn non_download_commands_can_retry_timeout() {
+        assert!(!is_download_command(&["pgpt".to_string()]));
+        assert!(!is_download_command(&["upload".to_string()]));
     }
 }

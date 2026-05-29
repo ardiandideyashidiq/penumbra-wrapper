@@ -32,7 +32,7 @@ impl ErrorCategory {
 pub enum AppError {
     #[error("IO error: {message}")]
     #[serde(rename = "io")]
-    Io { 
+    Io {
         message: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         code: Option<i32>,
@@ -40,7 +40,7 @@ pub enum AppError {
 
     #[error("Command execution failed: {message}")]
     #[serde(rename = "command")]
-    Command { 
+    Command {
         message: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         output: Option<String>,
@@ -64,8 +64,8 @@ pub enum AppError {
 
     #[error("Update error: {message}")]
     #[serde(rename = "update")]
-    Update { 
-        message: String, 
+    Update {
+        message: String,
         category: ErrorCategory,
         #[serde(skip_serializing_if = "Option::is_none")]
         suggestion: Option<String>,
@@ -73,7 +73,7 @@ pub enum AppError {
 
     #[error("{message}")]
     #[serde(rename = "other")]
-    Other { 
+    Other {
         message: String,
         #[serde(default = "ErrorCategory::unknown")]
         category: ErrorCategory,
@@ -110,6 +110,39 @@ impl AppError {
             AppError::Other { message, .. } => message.clone(),
         }
     }
+
+    #[cfg(test)]
+    pub fn category(&self) -> ErrorCategory {
+        match self {
+            AppError::Io { .. } => ErrorCategory::FileSystem,
+            AppError::Command { .. } => ErrorCategory::Command,
+            AppError::DeviceNotConnected => ErrorCategory::Command,
+            AppError::Cancelled => ErrorCategory::Command,
+            AppError::InvalidPartition(_) => ErrorCategory::Validation,
+            AppError::Parse(_) => ErrorCategory::Validation,
+            AppError::Update { category, .. } => category.clone(),
+            AppError::Other { category, .. } => category.clone(),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn suggestion(&self) -> Option<String> {
+        match self {
+            AppError::Io { message, code } => {
+                let lower = message.to_lowercase();
+                if *code == Some(5)
+                    || lower.contains("access denied")
+                    || lower.contains("permission denied")
+                {
+                    Some("Run as Administrator or check file permissions".to_string())
+                } else {
+                    None
+                }
+            }
+            AppError::Update { suggestion, .. } => suggestion.clone(),
+            _ => None,
+        }
+    }
 }
 
 impl From<std::io::Error> for AppError {
@@ -126,61 +159,66 @@ impl From<anyhow::Error> for AppError {
     fn from(err: anyhow::Error) -> Self {
         let err_str = err.to_string();
         let err_lower = err_str.to_lowercase();
-        
+
         // Categorize common errors for better user experience
-        if err_lower.contains("sharing violation") 
+        if err_lower.contains("sharing violation")
             || err_lower.contains("error code 32")
-            || err_lower.contains("being used by another process") {
+            || err_lower.contains("being used by another process")
+        {
             return AppError::Update {
                 message: err_str,
                 category: ErrorCategory::Permission,
                 suggestion: Some("Close antumbra.exe and try again".to_string()),
             };
         }
-        
-        if err_lower.contains("access denied") 
+
+        if err_lower.contains("access denied")
             || err_lower.contains("error code 5")
-            || err_lower.contains("permission denied") {
+            || err_lower.contains("permission denied")
+        {
             return AppError::Update {
                 message: err_str,
                 category: ErrorCategory::Permission,
                 suggestion: Some("Run as Administrator or check antivirus settings".to_string()),
             };
         }
-        
-        if err_lower.contains("network") 
-            || err_lower.contains("github") 
+
+        if err_lower.contains("network")
+            || err_lower.contains("github")
             || err_lower.contains("download")
             || err_lower.contains("connection")
             || err_lower.contains("timeout")
-            || err_lower.contains("dns") {
+            || err_lower.contains("dns")
+        {
             return AppError::Update {
                 message: err_str,
                 category: ErrorCategory::Network,
                 suggestion: Some("Check your internet connection and try again".to_string()),
             };
         }
-        
-        if err_lower.contains("checksum") 
+
+        if err_lower.contains("checksum")
             || err_lower.contains("hash")
-            || err_lower.contains("verification failed") {
+            || err_lower.contains("verification failed")
+        {
             return AppError::Update {
                 message: err_str,
                 category: ErrorCategory::Validation,
                 suggestion: Some("Download may be corrupted. Try downloading again".to_string()),
             };
         }
-        
-        if err_lower.contains("disk full") 
+
+        if err_lower.contains("disk full")
             || err_lower.contains("insufficient disk space")
-            || err_lower.contains("no space left") {
+            || err_lower.contains("no space left")
+        {
             return AppError::Update {
                 message: err_str,
                 category: ErrorCategory::FileSystem,
                 suggestion: Some("Free up disk space and try again".to_string()),
             };
         }
-        
+
         // Default to generic error with unknown category
         AppError::Other {
             message: err_str,
@@ -195,9 +233,12 @@ mod tests {
 
     #[test]
     fn test_error_categorization() {
-        let io_err = AppError::Io { message: "test".to_string(), code: None };
+        let io_err = AppError::Io {
+            message: "test".to_string(),
+            code: None,
+        };
         assert_eq!(io_err.category(), ErrorCategory::FileSystem);
-        
+
         let update_err = AppError::Update {
             message: "test".to_string(),
             category: ErrorCategory::Network,
@@ -208,9 +249,9 @@ mod tests {
 
     #[test]
     fn test_suggestion_for_permission_error() {
-        let io_err = AppError::Io { 
-            message: "Access denied".to_string(), 
-            code: Some(5) 
+        let io_err = AppError::Io {
+            message: "Access denied".to_string(),
+            code: Some(5),
         };
         assert!(io_err.suggestion().is_some());
         assert!(io_err.suggestion().unwrap().contains("Administrator"));

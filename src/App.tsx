@@ -89,7 +89,7 @@ function AppContent() {
           <Route path="adb-fastboot" element={<AdbFastboot />} />
         </Route>
       </Routes>
-      <Toaster position="bottom-right" />
+      <Toaster position="top-center" />
 
       <UpdateAvailableModal
         isOpen={isUpdateModalOpen}

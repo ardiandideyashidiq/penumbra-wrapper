@@ -3,7 +3,7 @@
     SPDX-FileCopyrightText: 2025 Shomy
 */
 
-use crate::commands::{execute_antumbra_command, validate_da_preloader_paths};
+use crate::commands::{build_antumbra_args, execute_antumbra_command, validate_da_preloader_paths};
 use crate::error::AppError;
 use crate::models::{Partition, PartitionListResult};
 use crate::services::antumbra::AntumbraExecutor;
@@ -64,12 +64,11 @@ pub async fn list_partitions(
     let executor = AntumbraExecutor::new(&app)?;
     let operation_id = Uuid::new_v4().to_string();
 
-    let mut args = vec!["pgpt".to_string(), "-d".to_string(), da_path];
-
-    if let Some(pl) = preloader_path {
-        args.push("-p".to_string());
-        args.push(pl);
-    }
+    let args = build_antumbra_args(
+        &da_path,
+        preloader_path.as_deref(),
+        vec!["pgpt".to_string()],
+    );
 
     let output = executor
         .execute_streaming(app, operation_id.clone(), args)
@@ -78,7 +77,10 @@ pub async fn list_partitions(
 
     let partitions = parse_pgpt_output(&output)?;
 
-    Ok(PartitionListResult { partitions, operation_id })
+    Ok(PartitionListResult {
+        partitions,
+        operation_id,
+    })
 }
 
 fn parse_pgpt_output(output: &str) -> Result<Vec<Partition>, AppError> {
@@ -98,9 +100,18 @@ fn parse_pgpt_output(output: &str) -> Result<Vec<Partition>, AppError> {
         let size_idx = parts.iter().position(|&s| s == "Size:");
 
         if let (Some(name_i), Some(addr_i), Some(size_i)) = (name_idx, addr_idx, size_idx) {
-            let name = parts.get(name_i + 1).map(|s| s.to_string()).unwrap_or_default();
-            let start = parts.get(addr_i + 1).map(|s| s.to_string()).unwrap_or_default();
-            let size_hex = parts.get(size_i + 1).map(|s| s.to_string()).unwrap_or_default();
+            let name = parts
+                .get(name_i + 1)
+                .map(|s| s.to_string())
+                .unwrap_or_default();
+            let start = parts
+                .get(addr_i + 1)
+                .map(|s| s.to_string())
+                .unwrap_or_default();
+            let size_hex = parts
+                .get(size_i + 1)
+                .map(|s| s.to_string())
+                .unwrap_or_default();
 
             let mut size_human = String::new();
             let mut in_parens = false;
@@ -123,7 +134,11 @@ fn parse_pgpt_output(output: &str) -> Result<Vec<Partition>, AppError> {
                     name,
                     start,
                     size: size_hex,
-                    display_size: if size_human.is_empty() { None } else { Some(size_human) },
+                    display_size: if size_human.is_empty() {
+                        None
+                    } else {
+                        Some(size_human)
+                    },
                 });
             }
         }
