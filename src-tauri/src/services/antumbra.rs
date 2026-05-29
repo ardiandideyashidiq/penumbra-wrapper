@@ -170,11 +170,12 @@ impl AntumbraExecutor {
         let (binary_path, working_dir) = {
             let parent = found_path
                 .parent()
-                .ok_or_else(|| anyhow::anyhow!("Antumbra binary has no parent directory"))?;
+                .ok_or_else(|| anyhow::anyhow!("Antumbra binary has no parent directory"))?
+                .to_path_buf();
 
-            if is_dir_writable(parent) {
+            if is_dir_writable(&parent) {
                 log::info!("Antumbra binary is in writable directory: {:?}", parent);
-                (found_path, parent.to_path_buf())
+                (found_path, parent)
             } else {
                 log::warn!(
                     "Antumbra binary directory is not writable: {}",
