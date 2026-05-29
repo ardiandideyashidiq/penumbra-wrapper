@@ -118,7 +118,7 @@ async fn main() {
         .setup(|app| {
             // Initialize services on startup
             log::info!("PenumbraWrapper starting...");
-            if let Err(err) = services::antumbra::seed_antumbra_binary(app) {
+            if let Err(err) = services::antumbra::seed_antumbra_binary(app.handle()) {
                 log::warn!("Failed to seed antumbra binary: {}", err);
             }
             Ok(())
